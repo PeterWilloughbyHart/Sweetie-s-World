@@ -1,15 +1,15 @@
-# Sweetie's Beach Day asset manifest
+﻿# Sweetie's Beach Day asset manifest
 
-This is the authoritative, project-wide checklist for every PNG path currently registered in `game.js`. The game expects **52 distinct PNG filenames**:
+This is the authoritative, project-wide checklist for every PNG path currently registered in `game.js`. The game expects **58 distinct PNG filenames**:
 
-- 31 Sweetie character files
+- 37 Sweetie character files
 - 10 layered background and sky-decoration files
 - 9 fixed beach prop files
 - 2 treat prop files
 
 Only `assets/sweetie/sweetie_idle.png` is strictly required. Every other PNG is optional and has a safe fallback. Adding only part of the optional collection will not break the game.
 
-Audio files are tracked separately in `AUDIO_ASSETS`. The two current MP3 paths are optional and are not included in the 52-PNG total below.
+Audio files are tracked separately in `AUDIO_ASSETS`. The two current MP3 paths are optional and are not included in the 58-PNG total below.
 
 ## Status legend
 
@@ -18,7 +18,7 @@ Audio files are tracked separately in `AUDIO_ASSETS`. The two current MP3 paths 
 - **Required**: the baseline character fallback that should always remain available.
 - **Complete group**: every frame in that animation group must load before the sequence is used.
 
-The status column is a repository snapshot as of June 22, 2026: 29 PNGs are present and 23 are pending. The filename and path columns are the lasting source of truth.
+The status column is a repository snapshot as of June 23, 2026: 38 PNGs are present and 20 are pending. The filename and path columns are the lasting source of truth.
 
 ## Expected folder tree
 
@@ -56,6 +56,8 @@ assets/
 `-- sweetie/
     |-- sweetie_idle.png
     |-- sweetie_happy.png
+    |-- sweetie_happy_01.png
+    |-- sweetie_happy_02.png
     |-- sweetie_snackish.png
     |-- sweetie_sleepy.png
     |-- sweetie_playful.png
@@ -84,7 +86,11 @@ assets/
     |-- sweetie_walk_01.png
     |-- sweetie_walk_02.png
     |-- sweetie_walk_03.png
-    `-- sweetie_walk_04.png
+    |-- sweetie_walk_04.png
+    |-- sweetie_run_01.png
+    |-- sweetie_run_02.png
+    |-- sweetie_run_03.png
+    `-- sweetie_run_04.png
 ```
 
 ## Ground-anchored scene depth
@@ -121,6 +127,15 @@ No broken image icon is displayed at any stage.
 ## Sweetie animation sequences
 
 Numbered sequences are registered in `SWEETIE_ANIMATIONS`. A sequence is activated only when **every registered frame in that group** loads and decodes successfully. The live sprite is not faded or cleared between decoded frames. A one-time console warning identifies frame groups with mismatched canvas dimensions, though the stable wrapper still prevents document layout shifts. Do not add blank or fake PNGs to complete a group.
+
+### Happy mood tail-wag animation, incomplete optional group
+
+| Exact path | Status | Frame role |
+| --- | --- | --- |
+| `assets/sweetie/sweetie_happy_01.png` | **Pending** | Happy pose, wag frame 01 |
+| `assets/sweetie/sweetie_happy_02.png` | **Pending** | Happy pose, wag frame 02 |
+
+Timing: 450ms per frame in a gentle loop while Sweetie is in the happy mood and no higher-priority animation is active. Both frames must load and decode before the loop is used. If either frame is missing, Sweetie uses `sweetie_happy.png`, then the normal mood-to-idle fallback chain. Under reduced motion, the loop is disabled and Sweetie remains on a static happy pose.
 
 ### Idle blink, complete group
 
@@ -192,6 +207,17 @@ Timing: 220ms per frame. The numbered sequence falls back to `sweetie_nap.png`, 
 
 Timing: 180ms per frame in a loop while Sweetie moves. If the group becomes incomplete, the stroll uses the current mood or idle image with a subtle CSS bob.
 
+### Return-home front run animation, incomplete optional group
+
+| Exact path | Status |
+| --- | --- |
+| `assets/sweetie/sweetie_run_01.png` | Present |
+| `assets/sweetie/sweetie_run_02.png` | Present |
+| `assets/sweetie/sweetie_run_03.png` | Present |
+| `assets/sweetie/sweetie_run_04.png` | **Pending** |
+
+Timing: 150ms per frame in a loop while Sweetie returns from a stroll to the home/care position. The run group is optional and only plays when all four frames load and decode. Until then, Sweetie still returns smoothly using the current valid mood or idle sprite. Do not add blank placeholder PNGs.
+
 ## Background layer PNGs
 
 These paths are registered in `BEACH_SCENE_ASSETS`. All are optional. They activate independently after preloading and sit over the existing CSS layer rather than replacing the whole beach scene.
@@ -199,10 +225,10 @@ These paths are registered in `BEACH_SCENE_ASSETS`. All are optional. They activ
 | Exact path | Status | Intended behavior |
 | --- | --- | --- |
 | `assets/backgrounds/beach_sky.png` | Pending | Broad static sky art behind all sun and cloud decorations |
-| `assets/backgrounds/sun.png` | Pending | Upper-right transparent sun overlay; rotates once every 80 seconds |
-| `assets/backgrounds/cloud_01.png` | Pending | Transparent cloud; gentle 64-second left-to-right drift |
-| `assets/backgrounds/cloud_02.png` | Pending | Transparent cloud; slower 92-second right-to-left drift |
-| `assets/backgrounds/cloud_03.png` | Pending | Transparent cloud; tiny 118-second side-to-side float |
+| `assets/backgrounds/sun.png` | Present | Larger upper-right transparent sun overlay; rotates once every 110 seconds |
+| `assets/backgrounds/cloud_01.png` | Present | Transparent cloud; gentle 72-second left-to-right drift |
+| `assets/backgrounds/cloud_02.png` | Present | Transparent cloud; slower 96-second right-to-left drift |
+| `assets/backgrounds/cloud_03.png` | Present | Transparent cloud; tiny 124-second side-to-side float |
 | `assets/backgrounds/beach_sand.png` | Pending | Static sand artwork over the CSS sand base |
 | `assets/backgrounds/distant_shore.png` | Pending | Transparent distant shoreline band inside the ocean |
 | `assets/backgrounds/ocean_water_texture.png` | Pending | Horizontally repeating water texture with slow drift |
@@ -211,7 +237,7 @@ These paths are registered in `BEACH_SCENE_ASSETS`. All are optional. They activ
 
 ### Animated sky decoration rule
 
-`beach_sky.png` remains the broad static sky layer. `sun.png` and the three cloud PNGs are separate overlays and activate independently. A missing sun, cloud 01, or cloud 02 keeps its existing CSS fallback visible; missing cloud 03 simply omits that extra decoration. Every sky decoration uses `pointer-events: none`.
+`beach_sky.png` remains the broad static sky layer. `sun.png` and the three cloud PNGs are separate overlays and activate independently. The loaded sun is intentionally larger than the CSS fallback and rotates very slowly; the cloud overlays drift on independent slow cycles so the sky feels alive without stealing attention. A missing sun, cloud 01, or cloud 02 keeps its existing CSS fallback visible; missing cloud 03 simply omits that extra decoration. Every sky decoration uses `pointer-events: none`.
 
 Under `prefers-reduced-motion`, loaded sky decorations remain visible and static while their rotation and drift are disabled.
 ### Ocean rule

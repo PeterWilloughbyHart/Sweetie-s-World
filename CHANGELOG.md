@@ -1,9 +1,43 @@
-# Changelog
+﻿# Changelog
+
+## Happy Mood Tail-Wag Animation Support
+
+**Date:** June 23, 2026  
+**Status:** Current completed milestone
+
+- Registered optional `sweetie_happy_01.png` and `sweetie_happy_02.png` as a complete happy mood animation group
+- Added a 450ms-per-frame happy tail-wag loop that only runs while Sweetie is in happy mood with no higher-priority animation active
+- Kept `sweetie_happy.png` as the single-pose fallback when either numbered frame is missing or reduced motion is preferred
+- Kept action animations, return-home run, ambient stroll/walk, temporary idle behaviors, and idle blink from conflicting with the happy loop
+- Preserved gameplay stats, saving, audio, sky, ocean, props, hot dog stand behavior, and existing care action animations
+
+## Return-Home Run Animation Support
+
+**Date:** June 22, 2026  
+**Status:** Superseded by Happy Mood Tail-Wag Animation Support
+
+- Registered optional `sweetie_run_01.png` through `sweetie_run_04.png` front-facing return-home frames at 150ms per frame
+- Added a `returningHome` state that smoothly moves Sweetie from the waterline or offscreen stroll lane back to the home/care anchor
+- Loops the return-home run only when the complete decoded frame group is available, otherwise falls back to the current mood or idle sprite without broken images
+- Queues one direct Sweetie care action during a stroll, temporarily marks care buttons unavailable, and plays the action only after Sweetie reaches home
+- Preserved stat effects, save data, audio, sky, ocean, props, hot dog stand behavior, and existing Sweetie action animations
+
+## Animated Sky Behavior Polish
+
+**Date:** June 22, 2026  
+**Status:** Superseded by Return-Home Run Animation Support
+
+- Increased the loaded `sun.png` display size with responsive CSS while keeping it in the upper-right sky layer
+- Slowed the sun rotation to a subtle 110-second cycle
+- Expanded cloud PNG motion into gentle transform-based drifts with independent 72, 96, and 124 second cycles
+- Kept missing sky assets on their existing CSS fallbacks without broken image icons
+- Preserved reduced-motion behavior so loaded sky decorations remain visible but static
+- Preserved the animated ocean, Sweetie behavior, hot dog stand NPC behavior, stats, saves, and UI structure
 
 ## PNG Animation Playback Stability
 
 **Date:** June 22, 2026  
-**Status:** Current completed milestone
+**Status:** Superseded by Animated Sky Behavior Polish
 
 - Upgraded shared PNG preloading to wait for browser decode before a frame can be used
 - Kept the previous Sweetie or stand frame visible while the next decoded frame is selected

@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   "use strict";
 
   const SAVE_KEY = "sweeties-beach-day-save-v1";
@@ -80,7 +80,8 @@
     nap: getCopyList("messages.nap", ["Sweetie had a tiny beach nap."]),
     stand: getCopyList("messages.stand", ["The hot dog stand packed three treats."]),
     idle: getCopyList("messages.idle", ["Sweetie is enjoying the beach."]),
-    return: getCopyList("messages.return", ["Sweetie is happy you're back."])
+    return: getCopyList("messages.return", ["Sweetie is happy you're back."]),
+    returningHome: getCopyList("messages.returningHome", ["Sweetie is scampering back!"])
   };
 
   const standDialogue = Object.freeze({
@@ -147,7 +148,9 @@
     offscreenPauseMin: 600,
     offscreenPauseMax: 1_000,
     returnDuration: 1_500,
-    walkFrameDuration: 180
+    walkFrameDuration: 180,
+    runHomeFrameDuration: 150,
+    happyMoodFrameDuration: 450
   });
   const reducedMotionQuery = typeof window.matchMedia === "function"
     ? window.matchMedia("(prefers-reduced-motion: reduce)")
@@ -232,6 +235,9 @@
     playful: "playful",
     calm: "idle"
   });
+  const SWEETIE_MOOD_ANIMATION_KEYS = Object.freeze({
+    happy: "happyMood"
+  });
   const SWEETIE_ACTION_ASSET_KEYS = Object.freeze({
     pet: "pet",
     treat: "treat",
@@ -240,7 +246,18 @@
     "fetch-shell": "fetch",
     nap: "nap"
   });
+  const SWEETIE_CARE_ACTIONS = Object.freeze(["pet", "treat", "water", "fetch", "nap"]);
   const SWEETIE_ANIMATIONS = Object.freeze({
+    happyMood: Object.freeze({
+      frames: Object.freeze([
+        "assets/sweetie/sweetie_happy_01.png",
+        "assets/sweetie/sweetie_happy_02.png"
+      ]),
+      fallback: "happy",
+      frameDuration: SWEETIE_STROLL_CONFIG.happyMoodFrameDuration,
+      loop: true,
+      mood: "happy"
+    }),
     idleBlink: Object.freeze({
       frames: Object.freeze([
         "assets/sweetie/sweetie_idle_01.png",
@@ -313,6 +330,17 @@
       fallback: "idle",
       frameDuration: SWEETIE_STROLL_CONFIG.walkFrameDuration,
       loop: true
+    }),
+    returnHomeRun: Object.freeze({
+      frames: Object.freeze([
+        "assets/sweetie/sweetie_run_01.png",
+        "assets/sweetie/sweetie_run_02.png",
+        "assets/sweetie/sweetie_run_03.png",
+        "assets/sweetie/sweetie_run_04.png"
+      ]),
+      fallback: "idle",
+      frameDuration: SWEETIE_STROLL_CONFIG.runHomeFrameDuration,
+      loop: true
     })
   });
   const dom = {
@@ -345,6 +373,8 @@
     questLock: document.querySelector("#quest-lock"),
     noteButton: document.querySelector("#note-button"),
     noteCopy: document.querySelector("#note-copy"),
+    careActionButtons: Array.from(document.querySelectorAll("[data-action]"))
+      .filter((button) => SWEETIE_CARE_ACTIONS.includes(button.dataset.action)),
     welcomeScreen: document.querySelector("#welcome-screen"),
     startButton: document.querySelector("#start-button"),
     dialog: document.querySelector("#feature-dialog"),
@@ -367,6 +397,7 @@
   let sweetieAssetRequestId = 0;
   let sweetieAnimationToken = 0;
   let sweetieFrameTimer = 0;
+  let currentSweetieAnimationName = null;
   let sweetieBlinkToken = 0;
   let sweetieBlinkScheduleTimer = 0;
   let sweetieBlinkFrameTimer = 0;
@@ -388,11 +419,16 @@
   let currentIdleBehavior = null;
   let isActionPlaying = false;
   let isSweetieStrolling = false;
+  let isSweetieReturningHome = false;
+  let pendingSweetieAction = null;
   let sweetieStrollState = "home";
   let sweetieStrollToken = 0;
   let sweetieStrollScheduleTimer = 0;
   let sweetieStrollStepTimer = 0;
   let sweetieStrollStepResolve = null;
+  let sweetieReturnToken = 0;
+  let sweetieReturnTimer = 0;
+  let sweetieReturnResolve = null;
   let sweetieDepthAnimationFrame = 0;
   let sceneDepthRefreshFrame = 0;
   let currentSweetieRoamPosition = { ...SWEETIE_STROLL_CONFIG.home };
@@ -769,6 +805,29 @@
     return SWEETIE_MOOD_ASSET_KEYS[currentSweetieMood] || "idle";
   }
 
+  function getSweetieMoodAnimationName() {
+    return SWEETIE_MOOD_ANIMATION_KEYS[currentSweetieMood] || null;
+  }
+
+  function isSweetieMoodAnimation(animationName = currentSweetieAnimationName) {
+    return Boolean(animationName) && Object.values(SWEETIE_MOOD_ANIMATION_KEYS).includes(animationName);
+  }
+
+  function canRunSweetieMoodAnimation(animationName = getSweetieMoodAnimationName()) {
+    if (!animationName || reducedMotionQuery.matches) return false;
+    const animation = SWEETIE_ANIMATIONS[animationName];
+    return Boolean(animation)
+      && animation.mood === currentSweetieMood
+      && state.hasStarted
+      && dom.welcomeScreen.hidden
+      && !activeSweetieAction
+      && !isActionPlaying
+      && !isSweetieStrolling
+      && !isSweetieReturningHome
+      && !currentIdleBehavior
+      && !document.hidden;
+  }
+
   function clearSweetieBlinkTimers() {
     window.clearTimeout(sweetieBlinkScheduleTimer);
     window.clearTimeout(sweetieBlinkFrameTimer);
@@ -791,6 +850,7 @@
       && !isActionPlaying
       && !isSweetieSequencePlaying
       && !isSweetieStrolling
+      && !isSweetieReturningHome
       && !document.hidden
       && currentSweetiePose === "idle"
       && currentSweetieSource === blink.frames[0];
@@ -818,18 +878,35 @@
   async function enableSweetieIdleBlink() {
     const blink = SWEETIE_ANIMATIONS.idleBlink;
     if (!await preloadSweetieAnimation("idleBlink")) return false;
-    if (activeSweetieAction || isActionPlaying || isSweetieSequencePlaying || isSweetieStrolling || document.hidden) return false;
+    if (activeSweetieAction || isActionPlaying || isSweetieSequencePlaying || isSweetieStrolling || isSweetieReturningHome || document.hidden) return false;
     applySweetieSource(blink.frames[0], "idle");
     scheduleSweetieBlink();
     return true;
   }
 
+  async function enableSweetieMoodAnimation() {
+    const animationName = getSweetieMoodAnimationName();
+    if (!canRunSweetieMoodAnimation(animationName)) return false;
+    if (!await preloadSweetieAnimation(animationName)) return false;
+    if (!canRunSweetieMoodAnimation(animationName)) return false;
+    return playSweetieAnimation(animationName, { holdUntilStopped: true });
+  }
+
   function syncSweetieSprite() {
-    if (isSweetieSequencePlaying) return Promise.resolve(currentSweetiePose);
+    if (isSweetieSequencePlaying) {
+      if (isSweetieMoodAnimation(currentSweetieAnimationName) && !canRunSweetieMoodAnimation(currentSweetieAnimationName)) {
+        stopSweetieAnimation(false);
+      } else {
+        return Promise.resolve(currentSweetiePose);
+      }
+    }
+
     const actionKey = SWEETIE_ACTION_ASSET_KEYS[activeSweetieAction];
     return requestSweetieAsset([actionKey, getSweetieMoodAssetKey(), "idle"]).then(async (selectedKey) => {
-      if (selectedKey === "idle" && !activeSweetieAction && !isActionPlaying) {
-        await enableSweetieIdleBlink();
+      if (!activeSweetieAction && !isActionPlaying) {
+        if (await enableSweetieMoodAnimation()) return currentSweetiePose;
+        if (selectedKey === "idle") await enableSweetieIdleBlink();
+        else stopSweetieBlink(false);
       } else {
         stopSweetieBlink(false);
       }
@@ -842,6 +919,7 @@
     window.clearTimeout(sweetieFrameTimer);
     sweetieFrameTimer = 0;
     isSweetieSequencePlaying = false;
+    currentSweetieAnimationName = null;
     if (restoreSprite) syncSweetieSprite();
   }
 
@@ -859,6 +937,7 @@
 
     sweetieAssetRequestId += 1;
     isSweetieSequencePlaying = true;
+    currentSweetieAnimationName = animationName;
     let frameIndex = 0;
     applySweetieSource(animation.frames[frameIndex], `${animationName}-frame-${frameIndex + 1}`);
 
@@ -870,6 +949,7 @@
           sweetieFrameTimer = 0;
           if (!holdUntilStopped) {
             isSweetieSequencePlaying = false;
+            currentSweetieAnimationName = null;
             syncSweetieSprite();
           }
           return;
@@ -1001,8 +1081,18 @@
     };
   }
 
-  function waitForSweetieStrollStep(duration, token) {
+  function clearSweetieStrollStep(resolveValue = false) {
     window.clearTimeout(sweetieStrollStepTimer);
+    sweetieStrollStepTimer = 0;
+    if (sweetieStrollStepResolve) {
+      const resolveStep = sweetieStrollStepResolve;
+      sweetieStrollStepResolve = null;
+      resolveStep(resolveValue);
+    }
+  }
+
+  function waitForSweetieStrollStep(duration, token) {
+    clearSweetieStrollStep(false);
     return new Promise((resolve) => {
       sweetieStrollStepResolve = resolve;
       sweetieStrollStepTimer = window.setTimeout(() => {
@@ -1010,6 +1100,53 @@
         sweetieStrollStepResolve = null;
         resolve(token === sweetieStrollToken && isSweetieStrolling);
       }, duration + 30);
+    });
+  }
+
+  function clearSweetieReturnStep(resolveValue = false) {
+    window.clearTimeout(sweetieReturnTimer);
+    sweetieReturnTimer = 0;
+    if (sweetieReturnResolve) {
+      const resolveReturn = sweetieReturnResolve;
+      sweetieReturnResolve = null;
+      resolveReturn(resolveValue);
+    }
+  }
+
+  function waitForSweetieReturnHomeStep(duration, token) {
+    clearSweetieReturnStep(false);
+    if (duration <= 0) return Promise.resolve(token === sweetieReturnToken && isSweetieReturningHome);
+    return new Promise((resolve) => {
+      sweetieReturnResolve = resolve;
+      sweetieReturnTimer = window.setTimeout(() => {
+        sweetieReturnTimer = 0;
+        sweetieReturnResolve = null;
+        resolve(token === sweetieReturnToken && isSweetieReturningHome);
+      }, duration + 30);
+    });
+  }
+
+  function isSweetieCareAction(action) {
+    return SWEETIE_CARE_ACTIONS.includes(action);
+  }
+
+  function isSweetieAtHome() {
+    const home = SWEETIE_STROLL_CONFIG.home;
+    return sweetieStrollState === "home"
+      && Math.abs(currentSweetieRoamPosition.x - home.x) < 0.001
+      && Math.abs(currentSweetieRoamPosition.y - home.y) < 0.001
+      && Math.abs(currentSweetieRoamPosition.scale - home.scale) < 0.001;
+  }
+
+  function showReturningHomeMessage() {
+    showMessage(pick(messages.returningHome));
+  }
+
+  function setSweetieCareActionsLocked(isLocked) {
+    dom.careActionButtons.forEach((button) => {
+      button.classList.toggle("is-return-locked", isLocked);
+      if (isLocked) button.setAttribute("aria-disabled", "true");
+      else button.removeAttribute("aria-disabled");
     });
   }
 
@@ -1021,6 +1158,8 @@
       && !document.hidden
       && !reducedMotionQuery.matches
       && !isSweetieStrolling
+      && !isSweetieReturningHome
+      && !pendingSweetieAction
       && !isActionPlaying
       && !activeSweetieAction
       && !isSweetieSequencePlaying
@@ -1068,25 +1207,95 @@
     return true;
   }
 
-  function cancelSweetieStroll({ restoreSprite = true } = {}) {
+  function cancelSweetieStroll({ restoreSprite = true, resetPosition = true } = {}) {
     window.clearTimeout(sweetieStrollScheduleTimer);
     sweetieStrollScheduleTimer = 0;
     sweetieStrollToken += 1;
-    window.clearTimeout(sweetieStrollStepTimer);
-    sweetieStrollStepTimer = 0;
-    if (sweetieStrollStepResolve) {
-      const resolveStep = sweetieStrollStepResolve;
-      sweetieStrollStepResolve = null;
-      resolveStep(false);
-    }
+    clearSweetieStrollStep(false);
 
     isSweetieStrolling = false;
     dom.sweetieRoamLayer.classList.remove("is-strolling", "walk-fallback");
+    if (resetPosition) {
+      setSweetieStrollState("home");
+      setSweetieFacing("right");
+      setSweetieRoamPosition(SWEETIE_STROLL_CONFIG.home, 0);
+    }
+    stopSweetieAnimation(false);
+    if (restoreSprite) syncSweetieSprite();
+  }
+
+  function stopSweetieReturnHome({ resetPosition = false, restoreSprite = true, clearPending = false } = {}) {
+    sweetieReturnToken += 1;
+    clearSweetieReturnStep(false);
+    isSweetieReturningHome = false;
+    dom.sweetieRoamLayer.classList.remove("is-returning-home", "run-fallback");
+    setSweetieCareActionsLocked(false);
+    if (clearPending) pendingSweetieAction = null;
+    if (resetPosition) {
+      setSweetieStrollState("home");
+      setSweetieFacing("right");
+      setSweetieRoamPosition(SWEETIE_STROLL_CONFIG.home, 0);
+    }
+    stopSweetieAnimation(false);
+    if (restoreSprite) syncSweetieSprite();
+  }
+
+  function finishSweetieReturnHome(token) {
+    if (token !== sweetieReturnToken || !isSweetieReturningHome) return false;
+    clearSweetieReturnStep(false);
+    isSweetieReturningHome = false;
+    dom.sweetieRoamLayer.classList.remove("is-returning-home", "run-fallback");
     setSweetieStrollState("home");
     setSweetieFacing("right");
     setSweetieRoamPosition(SWEETIE_STROLL_CONFIG.home, 0);
+    setSweetieCareActionsLocked(false);
     stopSweetieAnimation(false);
-    if (restoreSprite) syncSweetieSprite();
+
+    const queuedAction = pendingSweetieAction;
+    pendingSweetieAction = null;
+    if (queuedAction) {
+      runActionNow(queuedAction.action, queuedAction.button);
+    } else {
+      syncSweetieSprite();
+      syncThoughtBubble();
+      scheduleIdleBehavior();
+      scheduleSweetieStroll();
+    }
+    return true;
+  }
+
+  async function startSweetieReturnHome({ pendingAction = null } = {}) {
+    if (pendingAction && !pendingSweetieAction) pendingSweetieAction = pendingAction;
+    if (isSweetieReturningHome) {
+      setSweetieCareActionsLocked(true);
+      return false;
+    }
+
+    window.clearTimeout(sweetieStrollScheduleTimer);
+    window.clearTimeout(idleScheduleTimer);
+    clearIdleBehavior();
+    hideThoughtBubble();
+    stopSweetieBlink(false);
+    cancelSweetieStroll({ restoreSprite: false, resetPosition: false });
+
+    const token = ++sweetieReturnToken;
+    const duration = reducedMotionQuery.matches ? 0 : SWEETIE_STROLL_CONFIG.returnDuration;
+    isSweetieReturningHome = true;
+    setSweetieCareActionsLocked(true);
+    dom.sweetieRoamLayer.classList.add("is-returning-home");
+    dom.sweetieRoamLayer.classList.remove("walk-fallback");
+    setSweetieStrollState("returningHome");
+    setSweetieFacing("right");
+
+    const hasRunFrames = reducedMotionQuery.matches
+      ? false
+      : await playSweetieAnimation("returnHomeRun", { holdUntilStopped: true });
+    if (token !== sweetieReturnToken || !isSweetieReturningHome) return false;
+
+    dom.sweetieRoamLayer.classList.toggle("run-fallback", !hasRunFrames && duration > 0);
+    setSweetieRoamPosition(SWEETIE_STROLL_CONFIG.home, duration);
+    if (!await waitForSweetieReturnHomeStep(duration, token)) return false;
+    return finishSweetieReturnHome(token);
   }
 
   async function startSweetieStroll() {
@@ -1157,11 +1366,7 @@
       if (!await waitForSweetieStrollStep(reentryDuration, token)) return false;
     }
 
-    setSweetieStrollState("returning");
-    setSweetieFacing(currentSweetieRoamPosition.x > SWEETIE_STROLL_CONFIG.home.x ? "left" : "right");
-    setSweetieRoamPosition(SWEETIE_STROLL_CONFIG.home, SWEETIE_STROLL_CONFIG.returnDuration);
-    if (!await waitForSweetieStrollStep(SWEETIE_STROLL_CONFIG.returnDuration, token)) return false;
-    return finishSweetieStroll(token);
+    return startSweetieReturnHome();
   }
   function setSweetiePose(pose = "idle") {
     stopSweetieAnimation(false);
@@ -1502,6 +1707,7 @@
       && !document.hidden
       && !isActionPlaying
       && !isSweetieStrolling
+      && !isSweetieReturningHome
       && Date.now() - lastInteractionAt > 4_000;
   }
 
@@ -1759,6 +1965,34 @@
     actions[action]?.();
   }
 
+  function runActionNow(action, button) {
+    prepareForPlayerAction();
+    if (button) pulseElement(button, "is-activated", 380);
+    handleAction(action);
+    if (!isActionPlaying) {
+      syncThoughtBubble();
+      scheduleIdleBehavior();
+      scheduleSweetieStroll();
+    }
+  }
+
+  function shouldReturnHomeBeforeCareAction(action) {
+    return isSweetieCareAction(action)
+      && !isSweetieAtHome();
+  }
+
+  function queueSweetieCareAction(action, button) {
+    if (pendingSweetieAction || isSweetieReturningHome) {
+      showReturningHomeMessage();
+      return true;
+    }
+
+    pendingSweetieAction = { action, button };
+    showReturningHomeMessage();
+    startSweetieReturnHome();
+    return true;
+  }
+
   function updateStandButton() {
     const seconds = Math.max(0, Math.ceil((state.standReadyAt - Date.now()) / 1000));
     if (seconds > 0) {
@@ -1774,15 +2008,23 @@
 
   document.querySelectorAll("[data-action]").forEach((button) => {
     button.addEventListener("click", () => {
+      const action = button.dataset.action;
       audioManager.unlock();
-      prepareForPlayerAction();
-      pulseElement(button, "is-activated", 380);
-      handleAction(button.dataset.action);
-      if (!isActionPlaying) {
-        syncThoughtBubble();
-        scheduleIdleBehavior();
-        scheduleSweetieStroll();
+
+      if (isSweetieReturningHome) {
+        if (isSweetieCareAction(action) && !pendingSweetieAction) {
+          pendingSweetieAction = { action, button };
+        }
+        showReturningHomeMessage();
+        return;
       }
+
+      if (shouldReturnHomeBeforeCareAction(action)) {
+        queueSweetieCareAction(action, button);
+        return;
+      }
+
+      runActionNow(action, button);
     });
   });
 
@@ -1847,6 +2089,7 @@
       stopStandTalkingAnimation();
       window.clearTimeout(idleScheduleTimer);
       clearIdleBehavior();
+      stopSweetieReturnHome({ resetPosition: true, restoreSprite: false, clearPending: true });
       cancelSweetieStroll({ restoreSprite: false });
       stopSweetieBlink(false);
     } else {
@@ -1864,6 +2107,7 @@
       stopStandTalkingAnimation();
       window.clearTimeout(idleScheduleTimer);
       clearIdleBehavior();
+      stopSweetieReturnHome({ resetPosition: true, clearPending: true });
       cancelSweetieStroll();
     } else if (state.hasStarted && !document.hidden) {
       lastInteractionAt = Date.now();
@@ -1961,6 +2205,9 @@
     getSweetieStrollState: () => ({
       state: sweetieStrollState,
       isStrolling: isSweetieStrolling,
+      isReturningHome: isSweetieReturningHome,
+      pendingAction: pendingSweetieAction?.action || null,
+      activeSweetieAnimation: currentSweetieAnimationName,
       position: { ...currentSweetieRoamPosition }
     }),
     runSweetieStroll: () => {

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Editable player-facing copy for Sweetie's Beach Day.
  * Change quoted text values freely. Keep object keys unchanged unless game.js is updated too.
  * Placeholders such as {seconds}, {bond}, {mood}, and {stat} are filled by the game.
@@ -138,6 +138,9 @@ window.SWEETIE_COPY = {
       "Sweetie is happy you're back.",
       "Sweetie saved you a spot under the umbrella.",
       "Sweetie has been keeping an eye on the ducks."
+    ],
+    returningHome: [
+      "Sweetie is scampering back!"
     ]
   },
 
