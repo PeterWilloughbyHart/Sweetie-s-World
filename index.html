@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" data-copy-content="app.metaDescription" content="Spend a cozy beach day caring for Sweetie, a cheerful dachshund.">
+    <meta name="theme-color" content="#f4dfad">
+    <title data-copy="app.documentTitle">Sweetie&rsquo;s Beach Day</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow" data-copy="app.eyebrow">A tiny virtual pet beach day</p>
+          <h1 data-copy="app.title">Sweetie&rsquo;s Beach Day</h1>
+          <p class="tagline" data-copy="app.tagline">Hot dogs, short legs, and seaside dreams.</p>
+        </div>
+<div class="hero-controls">
+          <button id="sound-toggle" class="sound-toggle" type="button" aria-pressed="false" aria-label="Sound: Off"><span id="sound-label" data-copy="audio.soundOff">Sound: Off</span></button>
+          <div class="save-status" aria-live="polite"><span class="save-dot" aria-hidden="true"></span><span id="save-label" data-copy="app.save.default">Saved on this device</span></div>
+        </div>
+      </header>
+
+      <section class="game-layout" data-copy-aria="accessibility.gameLayout" aria-label="Sweetie's beach day">
+        <aside class="care-card stats-card" aria-labelledby="care-heading">
+          <div class="card-heading">
+            <div><p class="mini-label" data-copy="headings.checkInEyebrow">Beach day check-in</p><h2 id="care-heading" data-copy="headings.checkInTitle">How&rsquo;s Sweetie?</h2></div>
+            <span id="mood-badge" class="mood-badge mood-happy">Happy</span>
+          </div>
+          <div class="stats-list">
+            <div class="stat-row" data-stat="joy">
+              <div class="stat-copy"><span><i aria-hidden="true">&#9788;</i> <span data-copy="stats.joy.label">Joy</span></span><strong id="joy-value">78</strong></div>
+              <div class="meter" role="progressbar" data-copy-aria="stats.joy.label" aria-label="Joy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="78"><span id="joy-meter"></span></div>
+            </div>
+            <div class="stat-row" data-stat="fullness">
+              <div class="stat-copy"><span><i aria-hidden="true">&#9825;</i> <span data-copy="stats.fullness.label">Fullness</span></span><strong id="fullness-value">72</strong></div>
+              <div class="meter" role="progressbar" data-copy-aria="stats.fullness.label" aria-label="Fullness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="72"><span id="fullness-meter"></span></div>
+            </div>
+            <div class="stat-row" data-stat="energy">
+              <div class="stat-copy"><span><i aria-hidden="true">&#10022;</i> <span data-copy="stats.energy.label">Energy</span></span><strong id="energy-value">68</strong></div>
+              <div class="meter" role="progressbar" data-copy-aria="stats.energy.label" aria-label="Energy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="68"><span id="energy-meter"></span></div>
+            </div>
+            <div class="stat-row" data-stat="bond">
+              <div class="stat-copy"><span><i aria-hidden="true">&#9829;</i> <span data-copy="stats.bond.label">Bond</span></span><strong id="bond-value">25</strong></div>
+              <div class="meter" role="progressbar" data-copy-aria="stats.bond.label" aria-label="Bond" aria-valuemin="0" aria-valuemax="100" aria-valuenow="25"><span id="bond-meter"></span></div>
+            </div>
+          </div>
+          <div class="inventory-card">
+            <div class="hot-dog-icon" aria-hidden="true"><span></span></div>
+            <div><span class="mini-label" data-copy="inventory.heading">Picnic basket</span><strong><span id="treat-count">5</span> <span data-copy="inventory.itemLabel">hot dog treats</span></strong></div>
+          </div>
+          <div class="message-card" role="status" aria-live="polite">
+            <span class="message-heart" aria-hidden="true">&#9829;</span>
+            <p id="message-text" data-copy="messages.initial">Sweetie thinks today is a very good beach day.</p>
+          </div>
+        </aside>
+
+        <section class="beach-scene" data-copy-aria="scene.ariaLabel" aria-label="Sweetie relaxing on a sunny beach">
+          <div class="sky">
+            <span class="scene-background-asset sky-asset" data-beach-scene-asset="sky" aria-hidden="true"></span>
+            <span class="scene-background-asset sky-decoration-asset sky-sun-asset" data-beach-scene-asset="sun" aria-hidden="true"></span>
+            <span class="scene-background-asset sky-decoration-asset sky-cloud-asset sky-cloud-asset-one" data-beach-scene-asset="cloud01" aria-hidden="true"></span>
+            <span class="scene-background-asset sky-decoration-asset sky-cloud-asset sky-cloud-asset-two" data-beach-scene-asset="cloud02" aria-hidden="true"></span>
+            <span class="scene-background-asset sky-decoration-asset sky-cloud-asset sky-cloud-asset-three" data-beach-scene-asset="cloud03" aria-hidden="true"></span>
+            <span class="sun" aria-hidden="true"></span><span class="cloud cloud-one" aria-hidden="true"></span><span class="cloud cloud-two" aria-hidden="true"></span>
+          </div>
+          <div class="ocean" aria-hidden="true">
+            <span class="scene-background-asset ocean-texture-asset" data-beach-scene-asset="oceanTexture"></span>
+            <span class="scene-background-asset distant-shore-asset" data-beach-scene-asset="distantShore"></span>
+            <span class="scene-background-asset wave-foam-asset wave-foam-asset-one" data-beach-scene-asset="waveFoam01"></span>
+            <span class="scene-background-asset wave-foam-asset wave-foam-asset-two" data-beach-scene-asset="waveFoam02"></span>
+            <span class="wave wave-one"></span><span class="wave wave-two"></span><span class="wave wave-three"></span>
+          </div>
+          <div class="sand" aria-hidden="true"><span class="scene-background-asset sand-asset" data-beach-scene-asset="sand"></span></div>
+          <div class="umbrella" aria-hidden="true">
+            <img class="scene-prop-asset" data-beach-prop-asset="umbrella" alt="" draggable="false" decoding="async">
+            <span class="umbrella-top"></span><span class="umbrella-pole"></span>
+          </div>
+          <div class="towel" aria-hidden="true">
+            <img class="scene-prop-asset" data-beach-prop-asset="beachTowel" alt="" draggable="false" decoding="async">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="shell shell-one" aria-hidden="true"><img class="scene-prop-asset" data-beach-prop-asset="shell01" alt="" draggable="false" decoding="async"></div>
+          <div class="shell shell-two" aria-hidden="true"><img class="scene-prop-asset" data-beach-prop-asset="shell02" alt="" draggable="false" decoding="async"></div>
+          <div class="shell shell-three" aria-hidden="true"><img class="scene-prop-asset" data-beach-prop-asset="shell03" alt="" draggable="false" decoding="async"></div>
+          <div class="hot-dog-stand stand-npc" data-copy-aria="hotDogStand.ariaLabel" aria-label="A hot dog stand run by a cheerful duck vendor">
+            <div id="stand-speech-bubble" class="stand-speech-bubble" role="status" aria-live="polite" aria-atomic="true" aria-hidden="true"></div>
+            <img class="scene-prop-asset hot-dog-stand-asset" data-beach-prop-asset="hotDogStand" alt="" draggable="false" decoding="async">
+            <img class="scene-prop-asset stand-owner-asset" data-beach-prop-asset="standOwner" alt="" aria-hidden="true" draggable="false" decoding="async">
+            <div class="stand-sign" data-copy="hotDogStand.sign">HOT DOGS</div>
+            <div class="stand-awning"><span></span><span></span><span></span><span></span></div>
+            <div class="stand-window"><span class="stand-dog" aria-hidden="true"><img class="treat-prop-asset hot-dog-asset" data-beach-prop-asset="hotDog" alt="" draggable="false" decoding="async"></span></div>
+            <div class="stand-base"></div>
+          </div>
+          <div class="seagull" aria-hidden="true"><span></span><span></span></div>
+          <div id="thought-bubble" class="thought-bubble">Best. Day. Ever.</div>
+          <div id="mood-prop" class="mood-prop mood-prop-happy" aria-hidden="true"></div>
+          <div id="action-feedback" class="action-feedback" aria-hidden="true">
+            <span id="action-label" class="action-label"></span>
+            <span id="action-prop" class="action-prop">
+              <img class="treat-prop-asset hot-dog-asset" data-beach-prop-asset="hotDog" alt="" draggable="false" decoding="async">
+              <img class="treat-prop-asset treat-crumbs-asset" data-beach-prop-asset="treatCrumbs" alt="" draggable="false" decoding="async">
+            </span>
+            <span id="floating-effects" class="floating-effects"></span>
+          </div>
+          <div id="sweetie-roam-layer" class="sweetie-roam-layer" data-stroll-state="home" data-facing="right">
+            <div id="sweetie-character" class="sweetie-character mood-happy asset-loading" data-pose="idle" role="img" aria-label="Sweetie the happy blond long-haired dachshund">
+              <img id="sweetie-sprite" class="sweetie-sprite" alt="" draggable="false" decoding="async">
+              <span class="sweetie-placeholder" aria-hidden="true">&#9829;</span>
+            </div>
+          </div>
+          <div class="scene-caption"><span id="mood-icon" aria-hidden="true">&#9728;</span> <strong id="scene-mood">Happy</strong> <span data-copy="scene.captionSuffix">beach pup</span></div>
+        </section>
+      </section>
+
+      <section class="actions-card care-tray-card" aria-labelledby="actions-heading">
+        <div class="actions-heading">
+          <div><p class="mini-label" data-copy="headings.actionsEyebrow">Pick a cozy moment</p><h2 id="actions-heading" data-copy="headings.actionsTitle">Sweetie&rsquo;s care tray</h2></div>
+          <p data-copy="headings.actionsIntro">Care, play, and little seaside plans.</p>
+        </div>
+        <div class="care-tray">
+          <section class="tray-group daily-care-group" aria-labelledby="daily-care-heading">
+            <div class="tray-group-heading"><span class="tray-heading-icon" aria-hidden="true">&#9829;</span><div><p class="mini-label" data-copy="headings.dailyEyebrow">Everyday favorites</p><h3 id="daily-care-heading" data-copy="headings.dailyTitle">Daily Care</h3></div></div>
+            <div class="tray-actions tray-actions-daily">
+              <button class="action-button playable-action action-pet" data-action="pet" type="button"><span class="action-icon icon-pet" aria-hidden="true"></span><span><strong data-copy="actions.pet.label">Pet Sweetie</strong><small data-copy="actions.pet.subtitle">Head pats, obviously</small></span></button>
+              <button class="action-button playable-action action-treat" data-action="treat" type="button"><span class="action-icon icon-treat" aria-hidden="true"></span><span><strong data-copy="actions.treat.label">Give hot dog treat</strong><small data-copy="actions.treat.subtitle">A tiny gourmet moment</small></span></button>
+              <button class="action-button playable-action action-water" data-action="water" type="button"><span class="action-icon icon-water" aria-hidden="true"></span><span><strong data-copy="actions.water.label">Give water</strong><small data-copy="actions.water.subtitle">Hydration station</small></span></button>
+              <button class="action-button playable-action action-nap" data-action="nap" type="button"><span class="action-icon icon-nap" aria-hidden="true" data-copy="actions.nap.iconText">Zz</span><span><strong data-copy="actions.nap.label">Nap</strong><small data-copy="actions.nap.subtitle">A premium towel snooze</small></span></button>
+            </div>
+          </section>
+
+          <section class="tray-group play-group" aria-labelledby="play-heading">
+            <div class="tray-group-heading"><span class="tray-heading-icon" aria-hidden="true">&#9788;</span><div><p class="mini-label" data-copy="headings.playEyebrow">Short-leg adventures</p><h3 id="play-heading" data-copy="headings.playTitle">Play</h3></div></div>
+            <div class="tray-actions tray-actions-play">
+              <button class="action-button playable-action action-fetch" data-action="fetch" type="button"><span class="action-icon icon-fetch" aria-hidden="true"></span><span><strong data-copy="actions.fetch.label">Play fetch</strong><small data-copy="actions.fetch.subtitle">Maximum short-leg speed</small></span></button>
+              <button id="stand-button" class="action-button playable-action action-stand outing-action" data-action="stand" type="button"><span class="action-icon icon-stand" aria-hidden="true"></span><span><strong data-copy="actions.stand.label">Visit hot dog stand</strong><small id="stand-note" data-copy="actions.stand.subtitle">Treat restock available</small></span></button>
+            </div>
+          </section>
+
+          <section class="tray-group coming-soon-group" aria-labelledby="coming-soon-heading">
+            <div class="tray-group-heading"><span class="tray-heading-icon" aria-hidden="true">&#10022;</span><div><p class="mini-label" data-copy="headings.futureEyebrow">Tucked in the beach bag</p><h3 id="coming-soon-heading" data-copy="headings.futureTitle">Coming Soon</h3></div></div>
+            <div class="tray-actions tray-actions-future">
+              <button class="action-button future-action" data-action="outfits" type="button"><span class="action-icon icon-outfits" aria-hidden="true"></span><span><strong data-copy="actions.outfits.label">Outfits</strong><small data-copy="actions.outfits.subtitle">Coming soon: beachwear</small></span></button>
+              <button class="action-button future-action" data-action="tricks" type="button"><span class="action-icon icon-tricks" aria-hidden="true"></span><span><strong data-copy="actions.tricks.label">Tricks</strong><small data-copy="actions.tricks.subtitle">Coming soon: trick school</small></span></button>
+              <button id="quest-button" class="action-button future-action quest-action" data-action="quest" type="button"><span class="action-icon icon-quest" aria-hidden="true"></span><span><strong data-copy="actions.quest.label">Sweetie&rsquo;s Dream Quest</strong><small id="quest-note">Locked until Bond 75</small></span><span id="quest-lock" class="lock" aria-hidden="true" data-copy="actions.quest.lockBadge">LOCKED</span></button>
+            </div>
+          </section>
+        </div>
+        <div class="tray-utilities">
+          <button id="note-button" class="action-button note-action" data-action="note" type="button" hidden><span class="action-icon icon-note" aria-hidden="true"></span><span><strong data-copy="actions.note.label">Inspect sparkly seashell</strong><small id="note-copy">A tiny corner of paper is peeking out</small></span></button>
+          <button class="action-button reset-action" data-action="reset" type="button"><span class="action-icon icon-reset" aria-hidden="true"></span><span><strong data-copy="actions.reset.label">Reset save</strong><small data-copy="actions.reset.subtitle">Start a fresh beach day</small></span></button>
+        </div>
+      </section>
+      <footer><p data-copy="app.footer">Made for slow afternoons, sandy paws, and one very good dog.</p></footer>
+    </main>
+
+    <section id="welcome-screen" class="welcome-screen" aria-labelledby="welcome-title">
+      <div class="welcome-card">
+        <div class="welcome-sun" aria-hidden="true"></div><p class="eyebrow" data-copy="welcome.eyebrow">Welcome to the beach</p>
+        <h2 id="welcome-title"><span data-copy="welcome.titleName">Sweetie&rsquo;s</span><br><span data-copy="welcome.titlePlace">Beach Day</span></h2>
+        <div class="welcome-dog" aria-hidden="true"><span></span></div>
+        <p class="welcome-tagline" data-copy="welcome.tagline">Hot dogs, short legs, and seaside dreams.</p>
+        <p data-copy="welcome.message">Sweetie has cleared her schedule for snacks, naps, and quality time with you.</p>
+        <button id="start-button" class="primary-button" type="button" data-copy="welcome.startButton">Start the beach day</button>
+      </div>
+    </section>
+
+    <dialog id="feature-dialog" class="feature-dialog">
+      <button id="dialog-close" class="dialog-close" type="button" data-copy-aria="dialog.closeAriaLabel" aria-label="Close">&times;</button>
+      <span id="dialog-icon" class="dialog-icon" aria-hidden="true">&#9829;</span><p class="mini-label" data-copy="dialog.eyebrow">A little peek ahead</p>
+      <h2 id="dialog-title" data-copy="dialog.defaultTitle">Coming soon</h2><p id="dialog-message"></p>
+      <button id="dialog-ok" class="primary-button" type="button" data-copy="dialog.okButton">Back to the beach</button>
+    </dialog>
+    <script src="content/game-copy.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>
