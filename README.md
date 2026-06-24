@@ -19,8 +19,8 @@ Use the large care buttons to spend time with Sweetie:
 - **Give water** gives Sweetie a small Energy boost.
 - **Play fetch** raises Joy and Bond but uses Energy. When Sweetie is tired, she proudly substitutes a seashell instead.
 - **Nap** restores Energy and lowers Fullness a little.
-- **Visit hot dog stand** prompts a short line from the duck vendor and adds three treats. The duck needs 45 seconds to arrange the next batch.
-- **Shell Words** opens a 3-minute cozy word mini-game using curated beach-letter puzzles. Find five target words to complete a round; bonus words are optional.
+- **Visit hot dog stand** lets you buy one hot dog treat for 3 shells. The duck needs 45 seconds to prepare the next order.
+- **Shell Words** opens a 3-minute cozy word mini-game using curated beach-letter puzzles. Find words to earn shells; five target words completes a full round, and bonus words add a little extra.
 - Use the left and right beach arrows, or keyboard arrows when focus is not inside a control, to visit the bare-bones beach sections.
 - **Outfits** and **Tricks** show Phase 1 previews.
 - **Sweetie's Dream Quest** is locked until Bond reaches 75, then reveals a coming-soon preview.
@@ -50,10 +50,17 @@ Cupid's Cove and The Lazy Lighthouse are intentionally sparse for this MVP. They
 
 Shell Words is a lightweight MVP word game opened from the Play section. Each round lasts three minutes, shows a curated six-or-seven-letter shell pile, and completes when the player finds five accepted target words. Letter buttons can only be used as many times as their letters appear in the pile. Submit, Clear, Shuffle, Enter, Backspace, and letter-key input are supported.
 
-The game uses curated puzzle data only. There is no dictionary lookup, persistence, economy, inventory, shop, stat change, or reward payout in this pass. Completing or exiting a round builds a future-facing result object with `miniGame`, `puzzleId`, `completed`, `wordsFound`, `targetWords`, `timedOut`, `rewardTier`, and `rewardPendingImplementation: true` so later reward work has a clean hook.
+Shell Words now pays the soft beach currency **Shells** at round end. Finding no accepted target words awards 0 shells, finding 1-4 target words awards 2 shells, completing the five-word target awards 8 shells, and each bonus word adds 1 shell once at least one accepted target word has been found. Closing a round early counts as ending the round and grants the appropriate none/partial reward once. Each round result has a `rewardPaid` flag so reopening or rerendering the result cannot duplicate the payout.
 
 Starter puzzles live in `content/shell-words-puzzles.js` as `window.SHELL_WORD_PUZZLES`. Each puzzle should have a unique `id`, a display `title`, six or seven `letters`, `minimumLength`, `wordsToWin`, at least ten normal `acceptedWords`, and optional `bonusWords`. See `content/README.md` for editing guidance.
 
+## Shell economy and hot dog stand
+
+`ECONOMY_CONFIG` in `game.js` stores the first economy values: Shell Words rewards (`none: 0`, `partial: 2`, `full: 8`, `bonusWord: 1`) and the first shop item, `hotDogTreat`, priced at 3 shells. The persistent save stores `state.shells` next to the existing stats and treat count; old saves without shells migrate to 0 safely.
+
+The shell balance appears as a modest card beside the picnic basket. Visiting the duck-run hot dog stand now attempts to buy one hot dog treat for 3 shells. A successful purchase subtracts shells, adds one treat to the picnic basket, plays the existing stand reaction/talking feedback, and starts the familiar short stand cooldown. It does not feed Sweetie immediately; the existing **Give hot dog treat** care action still handles eating and stat changes. If the player has too few shells, no shells or treats change and the duck gives a gentle prompt to play more Shell Words.
+
+This is intentionally not a full shop yet: accessories, prop purchases, multiple snack items, section shops, premium currency, achievements, and inventory expansion are left for later.
 ## Stats and moods
 
 - **Joy** reflects Sweetie's cheerful mood.
@@ -71,7 +78,7 @@ Closing the game is completely safe. No offline decay is applied, so time away n
 
 ## Saving
 
-Progress saves automatically in the browser with `localStorage`. The save includes all four stats, the hot dog treat count, the stand cooldown, whether the hidden note was discovered, and whether the welcome screen has been completed. The sound preference is stored separately under its own local key, so resetting game progress does not force a sensory preference change. Reloading `index.html` restores the save on the same browser and device and shows a gentle return message.
+Progress saves automatically in the browser with `localStorage`. The save includes all four stats, the hot dog treat count, the Shells balance, the stand cooldown, whether the hidden note was discovered, and whether the welcome screen has been completed. The sound preference is stored separately under its own local key, so resetting game progress does not force a sensory preference change. Reloading `index.html` restores the save on the same browser and device and shows a gentle return message.
 
 The **Reset save** button asks for confirmation, clears the saved state, and begins a fresh beach day.
 
@@ -86,8 +93,8 @@ The **Reset save** button asks for confirmation, clears the saved state, and beg
 - Joy, Fullness, Energy, and always-growing Bond stats
 - Happy, Snackish, Sleepy, Playful, and Calm moods
 - Six working care and outing actions
-- Hot dog treat inventory, a gentle stand cooldown, and lightweight duck-vendor dialogue
-- Curated Shell Words MVP mini-game with a 3-minute timer, five-word completion target, and future reward scaffold
+- Shell currency, hot dog treat inventory, a gentle stand cooldown, and lightweight duck-vendor dialogue
+- Curated Shell Words MVP mini-game with a 3-minute timer, five-word completion target, and Shell rewards
 - More than 25 randomized affectionate reactions
 - Slow on-page stat decay with no offline penalty
 - Local saving, save migration, and reset
@@ -167,9 +174,9 @@ Optional walking art uses `assets/sweetie/sweetie_walk_01.png` through `sweetie_
 
 ## Hot dog stand NPC interaction
 
-The enlarged hot dog stand is a lightweight NPC interaction point. Visiting it shows one short, randomized line from the cheerful duck vendor in a dedicated bubble anchored above the stand, then preserves the existing free three-treat restock and 45-second cooldown. Repeated visits replace the current line and restart its short timer instead of stacking bubbles. The stand bubble is separate from Sweetie's occasional thought bubble. The stand now sits farther up the sand near the waterline while remaining in the ground-anchored depth system.
+The enlarged hot dog stand is a lightweight NPC interaction point and the first Shells shop hook. Visiting it shows one short, randomized line from the cheerful duck vendor in a dedicated bubble anchored above the stand. If the stand is ready and the player has 3 shells, the duck sells one hot dog treat, adds it to the picnic basket, and starts the familiar 45-second cooldown. If the player needs more shells, the duck gives a gentle prompt without changing shells or treats. Repeated visits replace the current line and restart its short timer instead of stacking bubbles. The stand bubble is separate from Sweetie's occasional thought bubble. The stand now sits farther up the sand near the waterline while remaining in the ground-anchored depth system.
 
-`assets/props/hot_dog_stand.png` is the idle frame and may include the duck vendor baked into the artwork. Optional `assets/props/hot_dog_stand_talk.png` and `assets/props/hot_dog_stand_talk_02.png` provide full-stand talking expressions. With both present, visits play idle, talk, talk 02, talk, idle at 250ms intervals; with only the first, idle and talk alternate; with neither, the idle stand and dialogue bubble continue normally. The optional, preload-gated `assets/props/stand_owner.png` path is registered for a future separate white duck layer; it is not required and its absence cannot create a broken image. Optional `assets/treats/hot_dog.png` and `assets/treats/treat_crumbs.png` artwork continues through the existing prop fallback pipeline. This handler is an intentional future extension point for shell, cash, or points purchases, but no economy, currency, prices, shop, inventory, outfits, or accessories are implemented.
+`assets/props/hot_dog_stand.png` is the idle frame and may include the duck vendor baked into the artwork. Optional `assets/props/hot_dog_stand_talk.png` and `assets/props/hot_dog_stand_talk_02.png` provide full-stand talking expressions. With both present, visits play idle, talk, talk 02, talk, idle at 250ms intervals; with only the first, idle and talk alternate; with neither, the idle stand and dialogue bubble continue normally. The optional, preload-gated `assets/props/stand_owner.png` path is registered for a future separate white duck layer; it is not required and its absence cannot create a broken image. Optional `assets/treats/hot_dog.png` and `assets/treats/treat_crumbs.png` artwork continues through the existing prop fallback pipeline. This handler is now the first small economy extension point: only the 3-shell hot dog treat purchase is implemented. Accessories, prop purchases, multiple snack items, expanded inventory, outfits, and broader shop systems are intentionally not implemented yet.
 
 ## Beach scene and prop asset pipeline
 

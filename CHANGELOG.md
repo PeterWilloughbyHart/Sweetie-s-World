@@ -1,9 +1,20 @@
 # Changelog
 
-## Idle Stroll Scheduler Repair
+## Shell Economy Hot Dog Loop MVP
 
 **Date:** June 23, 2026  
 **Status:** Current completed milestone
+
+- Added persistent `state.shells` currency with old-save migration, a modest Shells card beside the picnic basket, and UI-icon fallback support
+- Added `ECONOMY_CONFIG` for Shell Words reward values and the first shop item, `hotDogTreat`, priced at 3 shells
+- Connected Shell Words round endings to one-time Shell payouts: 0 for none, 2 for partial, 8 for full completion, and +1 per bonus word after at least one accepted target word
+- Converted the hot dog stand into a lightweight purchase flow: enough shells buys one basket treat, too few shells shows gentle duck feedback, and the existing stand talking/quack/cooldown behavior remains intact
+- Updated editable copy and documentation for Shells, Shell Words rewards, purchase feedback, insufficient-shell text, and future economy boundaries
+
+## Idle Stroll Scheduler Repair
+
+**Date:** June 23, 2026  
+**Status:** Superseded by Shell Economy Hot Dog Loop MVP
 
 - Repaired ambient stroll eligibility so passive mood loops, including the happy tail-wag animation, no longer permanently block idle walks
 - Kept care actions, return-home run, active strolls, section transitions, dialogs, Shell Words, page hiding, and temporary idle micro-behaviors as blockers

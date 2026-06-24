@@ -89,6 +89,30 @@
   const DECAY_TICK_MS = 60_000;
   const SHELL_WORDS_ROUND_SECONDS = 180;
   const SHELL_WORD_PUZZLES = Array.isArray(window.SHELL_WORD_PUZZLES) ? window.SHELL_WORD_PUZZLES : [];
+  const ECONOMY_CONFIG = Object.freeze({
+    currencies: Object.freeze({
+      shells: Object.freeze({
+        label: getCopy("economy.shells.label", "Shells")
+      })
+    }),
+    rewards: Object.freeze({
+      shellWords: Object.freeze({
+        none: 0,
+        partial: 2,
+        full: 8,
+        bonusWord: 1
+      })
+    }),
+    shopItems: Object.freeze({
+      hotDogTreat: Object.freeze({
+        id: "hotDogTreat",
+        label: getCopy("economy.shop.hotDogTreat.label", "Hot dog treat"),
+        currency: "shells",
+        price: 3,
+        type: "snack"
+      })
+    })
+  });
 
   function getCopy(path, fallback) {
     const value = path.split(".").reduce((current, key) => (
@@ -131,6 +155,7 @@
       energy: 68,
       bond: 25,
       treats: 5,
+      shells: 0,
       standReadyAt: 0,
       hiddenNoteDiscovered: false,
       lastSavedAt: Date.now(),
@@ -146,7 +171,7 @@
     fetch: getCopyList("messages.fetch", ["Sweetie fetched the ball."]),
     gentleFetch: getCopyList("messages.gentleFetch", ["Sweetie brought back a shell instead."]),
     nap: getCopyList("messages.nap", ["Sweetie had a tiny beach nap."]),
-    stand: getCopyList("messages.stand", ["The hot dog stand packed three treats."]),
+    stand: getCopyList("messages.stand", ["The duck wrapped one hot dog treat."]),
     idle: getCopyList("messages.idle", ["Sweetie is enjoying the beach."]),
     return: getCopyList("messages.return", ["Sweetie is happy you're back."]),
     returningHome: getCopyList("messages.returningHome", ["Sweetie is scampering back!"])
@@ -170,6 +195,17 @@
     cooldown: Object.freeze(getCopyList("hotDogStand.dialogue.cooldown", [
       "One moment - the next batch is nearly ready.",
       "The grill requires a dignified pause."
+    ])),
+    purchase: Object.freeze(getCopyList("hotDogStand.dialogue.purchase", [
+      "One beach dog delicacy, respectfully prepared.",
+      "For Sweetie? Naturally.",
+      "A fine snack decision.",
+      "The grill approves."
+    ])),
+    insufficientShells: Object.freeze(getCopyList("hotDogStand.dialogue.insufficientShells", [
+      "A few more shells, perhaps.",
+      "Quality snacks require quality shells.",
+      "The bun is ready, but the shells are not."
     ]))
   });
 
@@ -195,8 +231,10 @@
     minCooldownMs: 20_000,
     maxCooldownMs: 45_000
   });
+  const SWEETIE_GLOBAL_SCALE_MULTIPLIER = 0.7;
   const SWEETIE_STROLL_CONFIG = Object.freeze({
     enabled: true,
+    scaleMultiplier: SWEETIE_GLOBAL_SCALE_MULTIPLIER,
     idleDelayMin: 12_000,
     idleDelayMax: 24_000,
     retryDelay: 3_500,
@@ -441,6 +479,8 @@
     sceneMood: document.querySelector("#scene-mood"),
     thoughtBubble: document.querySelector("#thought-bubble"),
     treatCount: document.querySelector("#treat-count"),
+    shellCount: document.querySelector("#shell-count"),
+    shellBalanceCard: document.querySelector(".shell-balance-card"),
     messageText: document.querySelector("#message-text"),
     saveLabel: document.querySelector("#save-label"),
     standButton: document.querySelector("#stand-button"),
@@ -548,6 +588,10 @@
 
   function clamp(value) {
     return Math.max(0, Math.min(100, Number(value) || 0));
+  }
+
+  function normalizeShellAmount(value) {
+    return Math.max(0, Math.floor(Number(value) || 0));
   }
 
   function pick(list) {
@@ -1219,19 +1263,22 @@
   }
   function setSweetieRoamPosition(position, duration = 0) {
     const previousPosition = currentSweetieRoamPosition;
-    currentSweetieRoamPosition = { ...position };
+    const requestedScale = Number(position.scale);
+    const logicalScale = Number.isFinite(requestedScale) && requestedScale > 0 ? requestedScale : 1;
+    currentSweetieRoamPosition = { ...position, scale: logicalScale };
     const sceneWidth = dom.beachScene.clientWidth || dom.beachScene.getBoundingClientRect().width || 1;
     const sceneHeight = dom.beachScene.clientHeight || dom.beachScene.getBoundingClientRect().height || 1;
     const home = SWEETIE_STROLL_CONFIG.home;
     const xOffset = (position.x - home.x) * sceneWidth;
     const yOffset = (position.y - home.y) * sceneHeight;
-    const depthScale = Math.max(0.55, Math.min(1, Number(position.scale) || 1));
+    const depthScale = Math.max(0.55, Math.min(1, logicalScale));
+    const renderedScale = logicalScale * SWEETIE_GLOBAL_SCALE_MULTIPLIER;
     const shadowDepth = 0.68 + depthScale * 0.32;
 
     dom.sweetieRoamLayer.style.setProperty("--sweetie-roam-duration", String(Math.max(0, duration)) + "ms");
     dom.sweetieRoamLayer.style.setProperty("--sweetie-roam-x", String(xOffset) + "px");
     dom.sweetieRoamLayer.style.setProperty("--sweetie-roam-y", String(yOffset) + "px");
-    dom.sweetieRoamLayer.style.setProperty("--sweetie-roam-scale", position.scale);
+    dom.sweetieRoamLayer.style.setProperty("--sweetie-roam-scale", renderedScale.toFixed(4));
     dom.sweetieRoamLayer.style.setProperty("--sweetie-shadow-depth", shadowDepth.toFixed(3));
     animateSweetieSceneDepth(previousPosition.y, position.y, Math.max(0, duration));
   }
@@ -1239,7 +1286,7 @@
   function getSweetieStrollLane() {
     const sceneWidth = dom.beachScene.clientWidth || dom.beachScene.getBoundingClientRect().width || 1;
     const layerWidth = dom.sweetieRoamLayer.offsetWidth || dom.sweetieRoamLayer.clientWidth || 330;
-    const scaledHalfWidth = layerWidth * SWEETIE_STROLL_CONFIG.waterline.scale * 0.5;
+    const scaledHalfWidth = layerWidth * SWEETIE_STROLL_CONFIG.waterline.scale * SWEETIE_GLOBAL_SCALE_MULTIPLIER * 0.5;
     const offscreenBuffer = Math.max(
       SWEETIE_STROLL_CONFIG.xRange.minOffscreenBuffer,
       scaledHalfWidth / sceneWidth + SWEETIE_STROLL_CONFIG.xRange.offscreenPadding
@@ -1704,6 +1751,8 @@
     restored.energy = clamp(saved.energy ?? defaults.energy);
     restored.bond = clamp(saved.bond ?? defaults.bond);
     restored.treats = Math.max(0, Math.floor(Number(saved.treats) || 0));
+    restored.shells = normalizeShellAmount(saved.shells ?? saved.currency?.shells ?? defaults.shells);
+    restored.standReadyAt = Math.max(0, Number(saved.standReadyAt) || 0);
     restored.hiddenNoteDiscovered = Boolean(saved.hiddenNoteDiscovered);
     restored.hasStarted = Boolean(saved.hasStarted);
     return restored;
@@ -1830,6 +1879,10 @@
     });
 
     dom.treatCount.textContent = state.treats;
+    if (dom.shellCount) dom.shellCount.textContent = state.shells;
+    if (dom.shellBalanceCard) {
+      dom.shellBalanceCard.setAttribute("aria-label", copyText("economy.shells.ariaLabel", "{shells} collected shells", { shells: state.shells }));
+    }
     const mood = getMood();
     currentSweetieMood = mood;
     const moodInfo = moodDetails[mood];
@@ -1965,7 +2018,7 @@
     window.setTimeout(() => effect.remove(), 1500);
   }
 
-  function showActionFeedback({ type, label, stats = [], effects = [], inventory = false, propType = type }) {
+  function showActionFeedback({ type, label, stats = [], effects = [], inventory = false, shells = false, propType = type }) {
     dom.actionLabel.textContent = label;
     dom.actionLabel.classList.remove("is-visible");
     void dom.actionLabel.offsetWidth;
@@ -1990,6 +2043,7 @@
       pulseElement(document.querySelector(`[data-stat="${name}"]`), "stat-pulse", 850);
     });
     if (inventory) pulseElement(dom.inventoryCard, "inventory-pulse", 900);
+    if (shells) pulseElement(dom.shellBalanceCard, "inventory-pulse", 900);
     effects.forEach((effect, index) => {
       window.setTimeout(() => showFloatingEffect(effect.type, effect.text, effect.position), index * 90);
     });
@@ -2085,6 +2139,29 @@
     Object.entries(changes).forEach(([name, amount]) => {
       state[name] = clamp(state[name] + amount);
     });
+  }
+
+  function addShells(amount) {
+    const earned = normalizeShellAmount(amount);
+    if (earned <= 0) return 0;
+    state.shells = normalizeShellAmount(state.shells + earned);
+    return earned;
+  }
+
+  function spendShells(amount) {
+    const cost = normalizeShellAmount(amount);
+    if (cost <= 0) return true;
+    if (state.shells < cost) return false;
+    state.shells = normalizeShellAmount(state.shells - cost);
+    return true;
+  }
+
+  function getShopItem(itemId) {
+    return ECONOMY_CONFIG.shopItems[itemId] || null;
+  }
+
+  function canAffordShopItem(item) {
+    return Boolean(item) && state.shells >= normalizeShellAmount(item.price);
   }
 
   function finishAction(message, reaction, feedback) {
@@ -2186,13 +2263,14 @@
   }
 
   function visitStand() {
+    const hotDogTreat = getShopItem("hotDogTreat");
+    const price = normalizeShellAmount(hotDogTreat?.price || 0);
     const isRestockReady = state.standReadyAt <= Date.now();
-    showStandSpeechBubble(isRestockReady ? "visit" : "cooldown");
     playStandTalkingAnimation();
     audioManager.playSound("duckQuack");
 
-    // Future currency, purchases, and accessories can branch from this single NPC handler.
     if (!isRestockReady) {
+      showStandSpeechBubble("cooldown");
       finishAction(getCopy("hotDogStand.waitMessage", "The hot dog stand duck is still arranging the mustard."), null, {
         type: "stand-wait",
         label: getCopy("feedback.standWait.label", "Mustard break"),
@@ -2201,17 +2279,34 @@
       });
       return;
     }
-    state.treats += 3;
+
+    if (!canAffordShopItem(hotDogTreat)) {
+      showStandSpeechBubble("insufficientShells");
+      finishAction(copyText("hotDogStand.insufficientMessage", "A few more shells and the duck will happily wrap one up.", {
+        shells: state.shells,
+        price
+      }), null, {
+        type: "stand-insufficient",
+        label: getCopy("feedback.standInsufficient.label", "More shells"),
+        shells: true,
+        propType: null,
+        effects: [{ type: "sparkle", text: getCopy("feedback.standInsufficient.effect", "Shell hunt!"), position: "basket" }]
+      });
+      return;
+    }
+
+    showStandSpeechBubble("purchase");
+    spendShells(price);
+    state.treats += 1;
     state.standReadyAt = Date.now() + STAND_COOLDOWN_MS;
-    changeStats({ joy: 4 });
-    finishAction(pick(messages.stand), "stand", {
+    finishAction(copyText("hotDogStand.purchaseMessage", "The duck wrapped one hot dog treat for {price} shells.", { price }), "stand", {
       type: "stand",
       label: getCopy("feedback.stand.label", "Treat delivery!"),
-      stats: ["joy"],
       inventory: true,
+      shells: true,
       effects: [
-        { type: "sparkle", text: getCopy("feedback.stand.treats", "+3 treats"), position: "basket" },
-        { type: "heart", text: getCopy("feedback.common.joy", "+Joy"), position: "head" }
+        { type: "sparkle", text: getCopy("feedback.stand.treats", "+1 treat"), position: "basket" },
+        { type: "bond", text: copyText("feedback.stand.shellCost", "-{price} shells", { price }), position: "basket" }
       ]
     });
   }
@@ -2306,20 +2401,53 @@
     });
   }
 
-  function createShellWordsResult(timedOut) {
+  function createShellWordsResult(roundState) {
     const wordsFound = shellWords.foundWords.size;
+    const bonusWords = shellWords.foundBonusWords.size;
     const targetWords = getShellWordsTarget();
-    const completed = !timedOut && wordsFound >= targetWords;
+    const completed = roundState === "completed" || wordsFound >= targetWords;
+    const timedOut = roundState === "timedOut";
+    const exited = roundState === "exited";
+    const rewardTier = completed ? "full" : wordsFound > 0 ? "partial" : "none";
+    const rewardConfig = ECONOMY_CONFIG.rewards.shellWords;
+    const baseShells = rewardConfig[rewardTier] || 0;
+    const bonusShells = wordsFound > 0 ? bonusWords * rewardConfig.bonusWord : 0;
     return {
       miniGame: "shellWords",
       puzzleId: shellWords.puzzle?.id || "unknown",
       completed,
       wordsFound,
+      bonusWords,
       targetWords,
       timedOut,
-      rewardTier: completed ? "full" : wordsFound > 0 ? "partial" : "none",
-      rewardPendingImplementation: true
+      exited,
+      rewardTier,
+      baseShells,
+      bonusShells,
+      shellsEarned: baseShells + bonusShells,
+      rewardPaid: false
     };
+  }
+
+  function grantShellWordsReward() {
+    const result = shellWords.result;
+    if (!result || result.rewardPaid) return 0;
+    const earned = addShells(result.shellsEarned);
+    result.rewardPaid = true;
+    render();
+    if (earned > 0) pulseElement(dom.shellBalanceCard, "inventory-pulse", 900);
+    saveState();
+    return earned;
+  }
+
+  function getShellWordsEndStatus(roundState) {
+    if (roundState === "completed") {
+      return getCopy("shellWords.completedStatus", "Five words found. Sweetie declares this a tiny triumph.");
+    }
+    if (roundState === "exited") {
+      return getCopy("shellWords.exitedStatus", "Shell Words tucked back into the beach bag.");
+    }
+    return getCopy("shellWords.timedOutStatus", "Time is up, but the beach remains very proud of you.");
   }
 
   function stopShellWordsTimer() {
@@ -2330,10 +2458,9 @@
   function endShellWordsRound(nextState) {
     stopShellWordsTimer();
     shellWords.state = nextState;
-    shellWords.result = createShellWordsResult(nextState === "timedOut");
-    shellWords.status = nextState === "completed"
-      ? getCopy("shellWords.completedStatus", "Five words found. Sweetie declares this a tiny triumph.")
-      : getCopy("shellWords.timedOutStatus", "Time is up, but the beach remains very proud of you.");
+    shellWords.result = createShellWordsResult(nextState);
+    grantShellWordsReward();
+    shellWords.status = getShellWordsEndStatus(nextState);
     renderShellWords();
   }
 
@@ -2507,18 +2634,36 @@
     dom.shellWordsShuffle.disabled = shellWords.state !== "playing";
 
     if (shellWords.result) {
-      const summaryKey = shellWords.result.timedOut ? "shellWords.summaryTimedOut" : "shellWords.summaryCompleted";
-      const summaryFallback = shellWords.result.timedOut
+      const result = shellWords.result;
+      const summaryKey = result.timedOut
+        ? "shellWords.summaryTimedOut"
+        : result.exited
+          ? "shellWords.summaryExited"
+          : "shellWords.summaryCompleted";
+      const summaryFallback = result.timedOut
         ? "Round ended: {found} of {target} target words found, plus {bonus} bonus words."
-        : "Round complete: {found} target words and {bonus} bonus words found.";
+        : result.exited
+          ? "Round tucked away: {found} of {target} target words found, plus {bonus} bonus words."
+          : "Round complete: {found} target words and {bonus} bonus words found.";
       dom.shellWordsSummary.hidden = false;
       dom.shellWordsSummary.textContent = copyText(summaryKey, summaryFallback, {
-        found: shellWords.foundWords.size,
-        target,
-        bonus: shellWords.foundBonusWords.size
+        found: result.wordsFound,
+        target: result.targetWords,
+        bonus: result.bonusWords
       });
       dom.shellWordsReward.hidden = false;
-      dom.shellWordsReward.textContent = copyText("shellWords.rewardPending", "Reward tier: {tier}. Rewards will connect in a later pass.", { tier: shellWords.result.rewardTier });
+      dom.shellWordsReward.textContent = result.shellsEarned > 0
+        ? result.bonusShells > 0
+          ? copyText("shellWords.rewardEarnedWithBonus", "You earned {shells} shells, including {bonusShells} bonus shells.", {
+            shells: result.shellsEarned,
+            bonusShells: result.bonusShells,
+            tier: result.rewardTier
+          })
+          : copyText("shellWords.rewardEarned", "You earned {shells} shells.", {
+            shells: result.shellsEarned,
+            tier: result.rewardTier
+          })
+        : getCopy("shellWords.rewardNone", "No shells this round, but Sweetie enjoyed the hunt.");
     } else {
       dom.shellWordsSummary.hidden = true;
       dom.shellWordsReward.hidden = true;
@@ -2535,10 +2680,7 @@
 
   function closeShellWords() {
     if (shellWords.state === "playing") {
-      stopShellWordsTimer();
-      shellWords.state = "exited";
-      shellWords.status = getCopy("shellWords.exitedStatus", "Shell Words tucked back into the beach bag.");
-      shellWords.result = createShellWordsResult(false);
+      endShellWordsRound("exited");
     }
     if (typeof dom.shellWordsDialog.close === "function") dom.shellWordsDialog.close();
     else dom.shellWordsDialog.removeAttribute("open");
@@ -2648,14 +2790,21 @@
 
   function updateStandButton() {
     const seconds = Math.max(0, Math.ceil((state.standReadyAt - Date.now()) / 1000));
+    const hotDogTreat = getShopItem("hotDogTreat");
+    const price = normalizeShellAmount(hotDogTreat?.price || 0);
+    const hasEnoughShells = canAffordShopItem(hotDogTreat);
     if (seconds > 0) {
       dom.standButton.classList.add("cooling-down");
+      dom.standButton.classList.remove("needs-shells");
       dom.standButton.setAttribute("aria-disabled", "true");
       dom.standNote.textContent = copyText("hotDogStand.cooldown", "The duck needs {seconds}s", { seconds });
     } else {
       dom.standButton.classList.remove("cooling-down");
+      dom.standButton.classList.toggle("needs-shells", !hasEnoughShells);
       dom.standButton.removeAttribute("aria-disabled");
-      dom.standNote.textContent = getCopy("hotDogStand.ready", "Treat restock available");
+      dom.standNote.textContent = hasEnoughShells
+        ? copyText("hotDogStand.purchaseReady", "Hot dog treat - {price} shells", { price, shells: state.shells })
+        : copyText("hotDogStand.needShells", "Hot dog treat - {price} shells ({shells}/{price})", { price, shells: state.shells });
     }
   }
 
@@ -2850,6 +2999,11 @@
       }
     },
     getState: () => ({ ...state, mood: getMood() }),
+    getEconomyConfig: () => ({
+      currencies: { shells: { ...ECONOMY_CONFIG.currencies.shells } },
+      rewards: { shellWords: { ...ECONOMY_CONFIG.rewards.shellWords } },
+      shopItems: { hotDogTreat: { ...ECONOMY_CONFIG.shopItems.hotDogTreat } }
+    }),
     getShellWordsState: () => ({
       state: shellWords.state,
       puzzleId: shellWords.puzzle?.id || null,
@@ -2941,6 +3095,7 @@
         state[name] = clamp(state[name]);
       });
       state.treats = Math.max(0, Math.floor(Number(state.treats) || 0));
+      state.shells = normalizeShellAmount(state.shells);
       render();
       saveState(false);
     },

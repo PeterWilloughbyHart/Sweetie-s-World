@@ -49,6 +49,17 @@ window.SWEETIE_COPY = {
     itemLabel: "hot dog treats"
   },
 
+  economy: {
+    shells: {
+      label: "Shells",
+      itemLabel: "collected shells",
+      ariaLabel: "{shells} collected shells"
+    },
+    shop: {
+      hotDogTreat: { label: "Hot dog treat" }
+    }
+  },
+
   moods: {
     happy: { label: "Happy", icon: "☀", thought: "Best. Day. Ever.", propText: "" },
     snackish: { label: "Snackish", icon: "♡", thought: "A snack, perhaps?", propText: "" },
@@ -63,7 +74,7 @@ window.SWEETIE_COPY = {
     water: { label: "Give water", subtitle: "Hydration station" },
     nap: { label: "Nap", subtitle: "A premium towel snooze", iconText: "Zz" },
     fetch: { label: "Play fetch", subtitle: "Maximum short-leg speed" },
-    stand: { label: "Visit hot dog stand", subtitle: "Treat restock available" },
+    stand: { label: "Visit hot dog stand", subtitle: "Hot dog treat - 3 shells" },
     shellWords: { label: "Shell Words", subtitle: "Make little beach words" },
     outfits: { label: "Outfits", subtitle: "Coming soon: beachwear" },
     tricks: { label: "Tricks", subtitle: "Coming soon: trick school" },
@@ -111,7 +122,10 @@ window.SWEETIE_COPY = {
     progressText: "{found} / {target}",
     summaryCompleted: "Round complete: {found} target words and {bonus} bonus words found.",
     summaryTimedOut: "Round ended: {found} of {target} target words found, plus {bonus} bonus words.",
-    rewardPending: "Reward tier: {tier}. Rewards will connect in a later pass."
+    summaryExited: "Round tucked away: {found} of {target} target words found, plus {bonus} bonus words.",
+    rewardEarned: "You earned {shells} shells.",
+    rewardEarnedWithBonus: "You earned {shells} shells, including {bonusShells} bonus shells.",
+    rewardNone: "No shells this round, but Sweetie enjoyed the hunt."
   },
   messages: {
     initial: "Sweetie thinks today is a very good beach day.",
@@ -155,9 +169,9 @@ window.SWEETIE_COPY = {
       "Sweetie dreamed of a hot dog longer than she is."
     ],
     stand: [
-      "The hot dog stand packed three treats for Sweetie. VIP service!",
-      "Treat restock complete. Sweetie supervised the whole transaction.",
-      "Sweetie is considering a career in seaside hospitality."
+      "The duck wrapped one hot dog treat with excellent ceremony.",
+      "One beach snack joined the picnic basket. Sweetie approves of planning ahead.",
+      "The stand completed a very respectable treat transaction."
     ],
     idle: [
       "Sweetie watched a seagull with deep suspicion.",
@@ -193,16 +207,21 @@ window.SWEETIE_COPY = {
     fetch: { label: "Fetch!" },
     gentleFetch: { label: "Shell!", effect: "Excellent shell" },
     nap: { label: "Nap time", effect: "Zzz", propText: "Zzz" },
-    stand: { label: "Treat delivery!", treats: "+3 treats" },
-    standWait: { label: "Mustard break", effect: "Soon!" }
+    stand: { label: "Treat delivery!", treats: "+1 treat", shellCost: "-{price} shells" },
+    standWait: { label: "Mustard break", effect: "Soon!" },
+    standInsufficient: { label: "More shells", effect: "Shell hunt!" }
   },
 
   hotDogStand: {
     sign: "HOT DOGS",
     ariaLabel: "A hot dog stand run by a cheerful duck vendor",
     ready: "Treat restock available",
+    purchaseReady: "Hot dog treat - {price} shells",
+    needShells: "Hot dog treat - {price} shells ({shells}/{price})",
     cooldown: "The duck needs {seconds}s",
     waitMessage: "The hot dog stand duck is still arranging the mustard.",
+    purchaseMessage: "The duck wrapped one hot dog treat for {price} shells.",
+    insufficientMessage: "A few more shells and the duck will happily wrap one up.",
     dialogue: {
       general: [
         "Fresh hot dogs for discerning beach pups!",
@@ -224,6 +243,17 @@ window.SWEETIE_COPY = {
         "Fresh batch coming right up.",
         "I cannot rush craftsmanship.",
         "The buns are aligning as we speak."
+      ],
+      purchase: [
+        "One beach dog delicacy, respectfully prepared.",
+        "For Sweetie? Naturally.",
+        "A fine snack decision.",
+        "The grill approves."
+      ],
+      insufficientShells: [
+        "A few more shells, perhaps.",
+        "Quality snacks require quality shells.",
+        "The bun is ready, but the shells are not."
       ],
       world: [
         "Business has been brisk with the shore birds today.",
