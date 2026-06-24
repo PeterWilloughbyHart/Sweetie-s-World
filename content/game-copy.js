@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Editable player-facing copy for Sweetie's Beach Day.
  * Change quoted text values freely. Keep object keys unchanged unless game.js is updated too.
  * Placeholders such as {seconds}, {bond}, {mood}, and {stat} are filled by the game.
@@ -64,6 +64,7 @@ window.SWEETIE_COPY = {
     nap: { label: "Nap", subtitle: "A premium towel snooze", iconText: "Zz" },
     fetch: { label: "Play fetch", subtitle: "Maximum short-leg speed" },
     stand: { label: "Visit hot dog stand", subtitle: "Treat restock available" },
+    shellWords: { label: "Shell Words", subtitle: "Make little beach words" },
     outfits: { label: "Outfits", subtitle: "Coming soon: beachwear" },
     tricks: { label: "Tricks", subtitle: "Coming soon: trick school" },
     quest: {
@@ -80,6 +81,38 @@ window.SWEETIE_COPY = {
     reset: { label: "Reset save", subtitle: "Start a fresh beach day" }
   },
 
+
+  shellWords: {
+    eyebrow: "Beach bag mini-game",
+    title: "Shell Words",
+    instructions: "Tap shell letters to make cozy beach words. Find five before the timer runs out.",
+    timerLabel: "Timer",
+    progressLabel: "Progress",
+    foundHeading: "Found words",
+    startButton: "Start round",
+    newRoundButton: "New round",
+    submitButton: "Submit",
+    clearButton: "Clear",
+    shuffleButton: "Shuffle",
+    emptyWord: "Tap shells to spell a word.",
+    readyStatus: "Ready when you are.",
+    unavailableStatus: "No shell piles are ready yet.",
+    startStatus: "The shells are listening.",
+    tooShortStatus: "Tiny word, tiny pause - try at least {minimum} letters.",
+    notFromLettersStatus: "Those letters are not all in this shell pile.",
+    notAcceptedStatus: "Sweetie tilts her head. Try another beachy little word.",
+    duplicateStatus: "Already found. Sweetie is politely impressed twice.",
+    acceptedStatus: "Found: {word}",
+    bonusStatus: "Bonus shell word: {word}",
+    completedStatus: "Five words found. Sweetie declares this a tiny triumph.",
+    timedOutStatus: "Time is up, but the beach remains very proud of you.",
+    exitedStatus: "Shell Words tucked back into the beach bag.",
+    puzzleTitle: "Shell pile: {title}",
+    progressText: "{found} / {target}",
+    summaryCompleted: "Round complete: {found} target words and {bonus} bonus words found.",
+    summaryTimedOut: "Round ended: {found} of {target} target words found, plus {bonus} bonus words.",
+    rewardPending: "Reward tier: {tier}. Rewards will connect in a later pass."
+  },
   messages: {
     initial: "Sweetie thinks today is a very good beach day.",
     pet: [
@@ -231,6 +264,23 @@ window.SWEETIE_COPY = {
   scene: {
     ariaLabel: "Sweetie relaxing on a sunny beach",
     captionSuffix: "beach pup"
+  },
+
+  beachSections: {
+    label: "Beach section",
+    goTo: "Go to {section}",
+    cupidsCove: {
+      title: "Cupid's Cove",
+      description: "A quiet sandy nook for future heart-shaped surprises."
+    },
+    mainBeach: {
+      title: "Sweetie's Spot",
+      description: "Sweetie's favorite beach towel, picnic basket, and hot dog stand are here."
+    },
+    lazyLighthouse: {
+      title: "The Lazy Lighthouse",
+      description: "A breezy future stop for lighthouse errands and seaside discoveries."
+    }
   },
 
   welcome: {

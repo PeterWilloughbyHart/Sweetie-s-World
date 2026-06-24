@@ -1,4 +1,4 @@
-﻿# Background assets
+# Background assets
 
 Place optional beach background PNGs in this folder using these exact names:
 
@@ -25,6 +25,6 @@ Reduced-motion mode keeps successfully loaded sun and cloud PNGs visible but dis
 - `wave_foam_01.png`: transparent repeating foam band near the front of the water
 - `wave_foam_02.png`: transparent repeating secondary foam band at a different depth and speed
 
-All files are optional. Missing files keep the current CSS sky, CSS sun and clouds, sand, ocean gradient, and animated waves.
+All files are optional. Missing files keep the current CSS sky, CSS sun and clouds, sand, and ocean gradient. When the ocean texture and foam files are present, they are the primary visible ocean-motion layers; the older CSS wave sticks and generated foam strip are intentionally disabled to avoid visual overlap.
 
-The ocean texture and foam files are overlays, not replacements. Do not supply a full static beach screenshot or full-frame ocean animation here. The animated ocean remains independent from the sky-decoration system.
+The ocean texture and foam files are overlays, not full-scene replacements. Do not supply a full static beach screenshot or full-frame ocean animation here. The texture should cover the water area, while `wave_foam_01.png` sits nearer the front/lower water and `wave_foam_02.png` sits higher and subtler. The animated ocean remains independent from the sky-decoration system.
