@@ -4,7 +4,7 @@ Sweetie's Beach Day is a cozy, phone-first virtual pet game about caring for Swe
 
 The game uses only HTML, CSS, and vanilla JavaScript. It has no dependencies, build step, account, or server.
 
-> **Current milestone:** Lightweight Audio Manager. See [CHANGELOG.md](CHANGELOG.md) for the completed scope and deferred features.
+> **Current milestone:** UI icon asset system. See [CHANGELOG.md](CHANGELOG.md) for the completed scope and deferred features.
 
 ## How to run
 
@@ -20,10 +20,39 @@ Use the large care buttons to spend time with Sweetie:
 - **Play fetch** raises Joy and Bond but uses Energy. When Sweetie is tired, she proudly substitutes a seashell instead.
 - **Nap** restores Energy and lowers Fullness a little.
 - **Visit hot dog stand** prompts a short line from the duck vendor and adds three treats. The duck needs 45 seconds to arrange the next batch.
+- **Shell Words** opens a 3-minute cozy word mini-game using curated beach-letter puzzles. Find five target words to complete a round; bonus words are optional.
+- Use the left and right beach arrows, or keyboard arrows when focus is not inside a control, to visit the bare-bones beach sections.
 - **Outfits** and **Tricks** show Phase 1 previews.
 - **Sweetie's Dream Quest** is locked until Bond reaches 75, then reveals a coming-soon preview.
 - **Inspect sparkly seashell** appears at Bond 75 and reveals the hidden dedication placeholder.
 - **Reset save** returns the game to its comfortable starting state.
+
+
+## UI icon asset system
+
+Stats and action buttons can optionally render decorative PNG icons from `assets/ui/icons/` while keeping the existing CSS card and button layout. Missing PNGs keep the current CSS or text icon fallback, log one console warning per path, and never show broken-image placeholders.
+
+The registry lives in `UI_ICON_ASSETS` in `game.js`. Drop stat icons into `assets/ui/icons/stats/`, action icons into `assets/ui/icons/actions/`, and future/misc icons into `assets/ui/icons/misc/`. See `assets/ui/icons/README.md` for exact filenames, mappings, and art-size guidance.
+
+## Beach section navigation
+
+The beach scene now has a lightweight three-section navigation shell:
+
+- `cupidsCove` displays as **Cupid's Cove**.
+- `mainBeach` displays as **Sweetie's Spot** and remains the default, fully populated care scene.
+- `lazyLighthouse` displays as **The Lazy Lighthouse**.
+
+The left and right scene arrows move between adjacent sections with a short locked transition so repeated taps cannot stack room changes. Keyboard `ArrowLeft` and `ArrowRight` navigation works only when the game is started, no modal is open, no transition is running, and focus is not inside a button or text control.
+
+Cupid's Cove and The Lazy Lighthouse are intentionally sparse for this MVP. They keep the shared sky, ocean, sand, and Sweetie layers, while the existing umbrella, towel, shells, hot dog stand, and seagull remain tied to Sweetie's Spot. The `BEACH_SECTIONS` registry in `game.js` includes future-facing `actions`, `props`, `npcs`, and `discoveries` arrays for later content without changing current care mechanics.
+
+## Shell Words mini-game
+
+Shell Words is a lightweight MVP word game opened from the Play section. Each round lasts three minutes, shows a curated six-or-seven-letter shell pile, and completes when the player finds five accepted target words. Letter buttons can only be used as many times as their letters appear in the pile. Submit, Clear, Shuffle, Enter, Backspace, and letter-key input are supported.
+
+The game uses curated puzzle data only. There is no dictionary lookup, persistence, economy, inventory, shop, stat change, or reward payout in this pass. Completing or exiting a round builds a future-facing result object with `miniGame`, `puzzleId`, `completed`, `wordsFound`, `targetWords`, `timedOut`, `rewardTier`, and `rewardPendingImplementation: true` so later reward work has a clean hook.
+
+Starter puzzles live in `content/shell-words-puzzles.js` as `window.SHELL_WORD_PUZZLES`. Each puzzle should have a unique `id`, a display `title`, six or seven `letters`, `minimumLength`, `wordsToWin`, at least ten normal `acceptedWords`, and optional `bonusWords`. See `content/README.md` for editing guidance.
 
 ## Stats and moods
 
@@ -49,13 +78,16 @@ The **Reset save** button asks for confirmation, clears the saved state, and beg
 ## Current Phase 1 features
 
 - Responsive, phone-first interface with large touch controls
-- Sunny CSS beach scene with ocean, umbrella, towel, seashells, and hot dog stand
+- Optional PNG icon pipeline for stat badges and action-button icons
+- Three-section beach navigation shell with Sweetie's Spot as the populated main beach
+- Sunny beach scene with ocean, umbrella, towel, seashells, and hot dog stand on the main section
 - Asset-rendered blond long-haired dachshund character with mood reactions
 - Occasional no-penalty ambient strolls between the home area and waterline
 - Joy, Fullness, Energy, and always-growing Bond stats
 - Happy, Snackish, Sleepy, Playful, and Calm moods
 - Six working care and outing actions
 - Hot dog treat inventory, a gentle stand cooldown, and lightweight duck-vendor dialogue
+- Curated Shell Words MVP mini-game with a 3-minute timer, five-word completion target, and future reward scaffold
 - More than 25 randomized affectionate reactions
 - Slow on-page stat decay with no offline penalty
 - Local saving, save migration, and reset
@@ -117,15 +149,21 @@ Sweetie renders from image assets in `assets/sweetie/` inside the dedicated, bot
 
 Existing moods request happy, snackish, sleepy, playful, or idle artwork. Pet, treat, drink, fetch, and nap reactions temporarily take priority, then return to the best available mood sprite. Assets are checked off-screen before display, missing files log one console warning, and fallback continues through mood, idle, and finally a neutral placeholder without showing a broken image or reviving legacy dog layers. See `assets/sweetie/README.md` for filenames and artwork requirements.
 
+Happy mood can optionally loop `assets/sweetie/sweetie_happy_01.png` and `sweetie_happy_02.png` as a gentle 450ms tail wag when both frames load and no higher-priority animation is active. `sweetie_happy.png` remains the single-pose fallback, and reduced-motion mode keeps the happy pose static.
+
 Optional three-frame action sequences now play through the same stable container only after every registered frame loads and decodes. The current frame remains visible during swaps, frame images do not fade to transparent, and mismatched canvas sizes produce a one-time console diagnostic. A two-frame idle sequence provides naturally randomized blinks; actions interrupt it immediately and restore the correct mood or idle artwork afterward.
 
 ## Ambient Sweetie strolling
 
 After a calm 12-to-24-second idle period, Sweetie may wander from her home/care position toward a smaller waterline lane, cross most of the beach, briefly pass beyond both scene edges, re-enter, and return home. The movement is visual only: it never changes stats, saves, messages, or care outcomes.
 
-The outer `.sweetie-roam-layer` owns responsive scene movement and distance scaling while the inner `.sweetie-character` keeps existing blink and care animations. Any player action cancels the stroll, restores Sweetie to full-size home position immediately, and then plays the requested reaction. Ambient strolling is disabled when reduced motion is preferred.
+The stroll scheduler keeps one pending timer. If the timer fires while Sweetie is busy, a section transition is active, a dialog or Shell Words is open, the page is hidden, or a temporary idle micro-behavior is playing, the attempt retries after a short delay instead of stopping permanently. Passive mood loops, such as the happy tail-wag, count as idle-safe and can be interrupted by the walk cycle.
 
-Optional walking art uses `assets/sweetie/sweetie_walk_01.png` through `sweetie_walk_04.png`. The walk cycle runs only when all four frames load; otherwise the current mood or idle sprite travels with a very subtle CSS bob. See `assets/sweetie/README.md` for shared-canvas and feet-anchor requirements.
+The outer `.sweetie-roam-layer` owns responsive scene movement and distance scaling while the inner `.sweetie-character` keeps existing blink and care animations. When a stroll ends, Sweetie returns smoothly to the full-size home position before idle resumes. If `sweetie_run_01.png` through `sweetie_run_03.png` load, those frames loop during the return; `sweetie_run_04.png` is optional and joins the loop when present. If the minimum run frames are incomplete, the current valid mood or idle sprite returns home safely. Ambient strolling is intentionally canceled and not scheduled when reduced motion is preferred, keeping Sweetie safely at home with static sprites.
+
+Direct care actions clicked while Sweetie is strolling or offscreen are stored as a single pending action. The care buttons enter a temporary locked state, Sweetie runs home first, and then the queued action plays from the normal home/care position. Extra care clicks during the return keep the first queued action and show a gentle scampering-back message.
+
+Optional walking art uses `assets/sweetie/sweetie_walk_01.png` through `sweetie_walk_04.png`. The walk cycle runs only when all four frames load; otherwise the current mood or idle sprite travels with a very subtle CSS bob. See `assets/sweetie/README.md` for shared-canvas, feet-anchor, and return-run requirements.
 
 ## Hot dog stand NPC interaction
 
@@ -137,9 +175,9 @@ The enlarged hot dog stand is a lightweight NPC interaction point. Visiting it s
 
 Non-Sweetie artwork now has centralized optional paths in `BEACH_SCENE_ASSETS` and `BEACH_PROP_ASSETS` in `game.js`. Drop correctly named PNGs into `assets/backgrounds/`, `assets/props/`, or `assets/treats/` and reload the page. A path activates only after its file preloads successfully, so missing or partial asset sets keep the existing CSS scene without broken images or layout shifts.
 
-The scene remains layered rather than flattened: sky, animated ocean, sand, fixed props, Sweetie, feedback, then UI. The base ocean gradient, moving CSS waves, and shoreline foam remain active. Optional `ocean_water_texture.png`, `wave_foam_01.png`, and `wave_foam_02.png` add independently drifting overlays; reduced-motion mode freezes those overlays. They are not a full-scene background or frame animation.
+The scene remains layered rather than flattened: sky, animated ocean, sand, fixed props, Sweetie, feedback, then UI. The base ocean gradient remains active, while loaded `ocean_water_texture.png`, `wave_foam_01.png`, and `wave_foam_02.png` now provide the visible water motion. Legacy CSS wave sticks and the old generated foam strip are disabled so the PNG overlays read as one cleaner ocean system; reduced-motion mode freezes those overlays. They are not a full-scene background or frame animation.
 
-The broad `beach_sky.png` layer now supports separate optional `sun.png` and `cloud_01.png` through `cloud_03.png` decorations. Successfully loaded artwork rotates or drifts gently behind the ocean; missing files retain the existing CSS sun and clouds. Reduced-motion mode leaves the decorations visible and static.
+The broad `beach_sky.png` layer supports separate optional `sun.png` and `cloud_01.png` through `cloud_03.png` decorations. Successfully loaded artwork sits above the CSS sky but behind the ocean: the sun displays larger in the upper-right and rotates once every 110 seconds, while the clouds drift lazily on independent 72, 96, and 124 second cycles. Missing files retain the existing CSS sun and clouds, and reduced-motion mode leaves the decorations visible and static.
 
 See `assets/README.md` and each asset folder's README for exact filenames, transparent-canvas guidance, fallbacks, and layer rules.
 
@@ -162,7 +200,7 @@ Both MP3s are optional. Missing files and rejected playback promises are handled
 - Outfits
 - Dog tricks
 - Beach collectibles
-- Word games
+- More word-game puzzle packs
 - Duck easter eggs
 - Weightlifting-themed accessories or mini-events
 - Musical-theater-inspired witty achievement names, without using copyrighted lyrics

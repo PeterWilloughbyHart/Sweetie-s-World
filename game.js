@@ -13,14 +13,82 @@
     effectVolume: 0.6,
     duckQuackCooldownMs: 450
   });
+  const UI_ICON_ASSETS = Object.freeze({
+    stats: Object.freeze({
+      joy: "assets/ui/icons/stats/stat_joy.png",
+      fullness: "assets/ui/icons/stats/stat_fullness.png",
+      energy: "assets/ui/icons/stats/stat_energy.png",
+      bond: "assets/ui/icons/stats/stat_bond.png",
+      treats: "assets/ui/icons/stats/stat_treats.png"
+    }),
+    actions: Object.freeze({
+      pet: "assets/ui/icons/actions/action_pet.png",
+      treat: "assets/ui/icons/actions/action_treat.png",
+      water: "assets/ui/icons/actions/action_water.png",
+      nap: "assets/ui/icons/actions/action_nap.png",
+      fetch: "assets/ui/icons/actions/action_play.png",
+      stand: "assets/ui/icons/actions/action_visit_stand.png"
+    }),
+    misc: Object.freeze({
+      shellWords: "assets/ui/icons/misc/icon_shell_words.png",
+      outfits: "assets/ui/icons/misc/icon_outfits.png",
+      tricks: "assets/ui/icons/misc/icon_tricks.png",
+      settings: "assets/ui/icons/misc/icon_settings.png",
+      currency: "assets/ui/icons/misc/icon_currency.png",
+      navLeft: "assets/ui/icons/misc/icon_nav_left.png",
+      navRight: "assets/ui/icons/misc/icon_nav_right.png"
+    })
+  });
+  const COPY_ROOT = window.SWEETIE_COPY || {};
   const DREAM_BOND = 75;
   const STAND_COOLDOWN_MS = 45_000;
+  const BEACH_SECTION_TRANSITION_MS = 640;
+  const BEACH_SECTIONS = Object.freeze([
+    Object.freeze({
+      id: "cupidsCove",
+      copyKey: "cupidsCove",
+      title: getCopy("beachSections.cupidsCove.title", "Cupid's Cove"),
+      description: getCopy("beachSections.cupidsCove.description", "A quiet sandy nook for future heart-shaped surprises."),
+      leftSectionId: null,
+      rightSectionId: "mainBeach",
+      actions: Object.freeze([]),
+      props: Object.freeze([]),
+      npcs: Object.freeze([]),
+      discoveries: Object.freeze([])
+    }),
+    Object.freeze({
+      id: "mainBeach",
+      copyKey: "mainBeach",
+      title: getCopy("beachSections.mainBeach.title", "Sweetie's Spot"),
+      description: getCopy("beachSections.mainBeach.description", "Sweetie's favorite beach towel, picnic basket, and hot dog stand are here."),
+      leftSectionId: "cupidsCove",
+      rightSectionId: "lazyLighthouse",
+      actions: Object.freeze([]),
+      props: Object.freeze([]),
+      npcs: Object.freeze([]),
+      discoveries: Object.freeze([])
+    }),
+    Object.freeze({
+      id: "lazyLighthouse",
+      copyKey: "lazyLighthouse",
+      title: getCopy("beachSections.lazyLighthouse.title", "The Lazy Lighthouse"),
+      description: getCopy("beachSections.lazyLighthouse.description", "A breezy future stop for lighthouse errands and seaside discoveries."),
+      leftSectionId: "mainBeach",
+      rightSectionId: null,
+      actions: Object.freeze([]),
+      props: Object.freeze([]),
+      npcs: Object.freeze([]),
+      discoveries: Object.freeze([])
+    })
+  ]);
+  const BEACH_SECTION_BY_ID = Object.freeze(Object.fromEntries(BEACH_SECTIONS.map((section) => [section.id, section])));
   const STAND_NPC_CONFIG = Object.freeze({
     speechDurationMs: 4_200,
     talkFrameDurationMs: 250
   });
   const DECAY_TICK_MS = 60_000;
-  const COPY_ROOT = window.SWEETIE_COPY || {};
+  const SHELL_WORDS_ROUND_SECONDS = 180;
+  const SHELL_WORD_PUZZLES = Array.isArray(window.SHELL_WORD_PUZZLES) ? window.SHELL_WORD_PUZZLES : [];
 
   function getCopy(path, fallback) {
     const value = path.split(".").reduce((current, key) => (
@@ -80,7 +148,8 @@
     nap: getCopyList("messages.nap", ["Sweetie had a tiny beach nap."]),
     stand: getCopyList("messages.stand", ["The hot dog stand packed three treats."]),
     idle: getCopyList("messages.idle", ["Sweetie is enjoying the beach."]),
-    return: getCopyList("messages.return", ["Sweetie is happy you're back."])
+    return: getCopyList("messages.return", ["Sweetie is happy you're back."]),
+    returningHome: getCopyList("messages.returningHome", ["Sweetie is scampering back!"])
   };
 
   const standDialogue = Object.freeze({
@@ -132,7 +201,8 @@
     idleDelayMax: 24_000,
     retryDelay: 3_500,
     home: Object.freeze({ x: 0.5, y: 0.99, scale: 1 }),
-    waterline: Object.freeze({ y: 0.625, scale: 0.62 }),
+    // y anchors the padded sprite layer; this keeps Sweetie's visible paws on the back sand, not in the water.
+    waterline: Object.freeze({ y: 0.7, scale: 0.58 }),
     xRange: Object.freeze({
       leftVisible: 0.08,
       rightVisible: 0.92,
@@ -147,7 +217,9 @@
     offscreenPauseMin: 600,
     offscreenPauseMax: 1_000,
     returnDuration: 1_500,
-    walkFrameDuration: 180
+    walkFrameDuration: 180,
+    runHomeFrameDuration: 150,
+    happyMoodFrameDuration: 450
   });
   const reducedMotionQuery = typeof window.matchMedia === "function"
     ? window.matchMedia("(prefers-reduced-motion: reduce)")
@@ -210,7 +282,7 @@
       Object.freeze({ name: "shell-one", selector: ".shell-one", anchorRatio: 1, depthOffset: 0 }),
       Object.freeze({ name: "shell-two", selector: ".shell-two", anchorRatio: 1, depthOffset: -22 }),
       Object.freeze({ name: "shell-three", selector: ".shell-three", anchorRatio: 1, depthOffset: -4 }),
-      Object.freeze({ name: "hot-dog-stand", selector: ".hot-dog-stand", anchorRatio: 0.94, depthOffset: 8 })
+      Object.freeze({ name: "hot-dog-stand", selector: ".hot-dog-stand", anchorRatio: 1, depthOffset: 8 })
     ])
   });
   const SWEETIE_ASSETS = Object.freeze({
@@ -232,6 +304,9 @@
     playful: "playful",
     calm: "idle"
   });
+  const SWEETIE_MOOD_ANIMATION_KEYS = Object.freeze({
+    happy: "happyMood"
+  });
   const SWEETIE_ACTION_ASSET_KEYS = Object.freeze({
     pet: "pet",
     treat: "treat",
@@ -240,7 +315,18 @@
     "fetch-shell": "fetch",
     nap: "nap"
   });
+  const SWEETIE_CARE_ACTIONS = Object.freeze(["pet", "treat", "water", "fetch", "nap"]);
   const SWEETIE_ANIMATIONS = Object.freeze({
+    happyMood: Object.freeze({
+      frames: Object.freeze([
+        "assets/sweetie/sweetie_happy_01.png",
+        "assets/sweetie/sweetie_happy_02.png"
+      ]),
+      fallback: "happy",
+      frameDuration: SWEETIE_STROLL_CONFIG.happyMoodFrameDuration,
+      loop: true,
+      mood: "happy"
+    }),
     idleBlink: Object.freeze({
       frames: Object.freeze([
         "assets/sweetie/sweetie_idle_01.png",
@@ -313,6 +399,19 @@
       fallback: "idle",
       frameDuration: SWEETIE_STROLL_CONFIG.walkFrameDuration,
       loop: true
+    }),
+    returnHomeRun: Object.freeze({
+      frames: Object.freeze([
+        "assets/sweetie/sweetie_run_01.png",
+        "assets/sweetie/sweetie_run_02.png",
+        "assets/sweetie/sweetie_run_03.png"
+      ]),
+      optionalFrames: Object.freeze([
+        "assets/sweetie/sweetie_run_04.png"
+      ]),
+      fallback: "idle",
+      frameDuration: SWEETIE_STROLL_CONFIG.runHomeFrameDuration,
+      loop: true
     })
   });
   const dom = {
@@ -320,6 +419,12 @@
     sweetie: document.querySelector("#sweetie-character"),
     sweetieImage: document.querySelector("#sweetie-sprite"),
     beachScene: document.querySelector(".beach-scene"),
+    beachSectionTitle: document.querySelector("#beach-section-title"),
+    beachSectionNote: document.querySelector("#beach-section-note"),
+    beachNavLeft: document.querySelector("#beach-nav-left"),
+    beachNavRight: document.querySelector("#beach-nav-right"),
+    beachNavLeftLabel: document.querySelector("#beach-nav-left-label"),
+    beachNavRightLabel: document.querySelector("#beach-nav-right-label"),
     moodProp: document.querySelector("#mood-prop"),
     actionLabel: document.querySelector("#action-label"),
     actionProp: document.querySelector("#action-prop"),
@@ -345,6 +450,8 @@
     questLock: document.querySelector("#quest-lock"),
     noteButton: document.querySelector("#note-button"),
     noteCopy: document.querySelector("#note-copy"),
+    careActionButtons: Array.from(document.querySelectorAll("[data-action]"))
+      .filter((button) => SWEETIE_CARE_ACTIONS.includes(button.dataset.action)),
     welcomeScreen: document.querySelector("#welcome-screen"),
     startButton: document.querySelector("#start-button"),
     dialog: document.querySelector("#feature-dialog"),
@@ -352,7 +459,23 @@
     dialogMessage: document.querySelector("#dialog-message"),
     dialogIcon: document.querySelector("#dialog-icon"),
     dialogClose: document.querySelector("#dialog-close"),
-    dialogOk: document.querySelector("#dialog-ok")
+    dialogOk: document.querySelector("#dialog-ok"),
+    shellWordsDialog: document.querySelector("#shell-words-dialog"),
+    shellWordsPanel: document.querySelector("#shell-words-panel"),
+    shellWordsClose: document.querySelector("#shell-words-close"),
+    shellWordsStart: document.querySelector("#shell-words-start"),
+    shellWordsSubmit: document.querySelector("#shell-words-submit"),
+    shellWordsClear: document.querySelector("#shell-words-clear"),
+    shellWordsShuffle: document.querySelector("#shell-words-shuffle"),
+    shellWordsTimer: document.querySelector("#shell-words-timer"),
+    shellWordsProgress: document.querySelector("#shell-words-progress"),
+    shellWordsPuzzleTitle: document.querySelector("#shell-words-puzzle-title"),
+    shellWordsCurrent: document.querySelector("#shell-words-current"),
+    shellWordsLetters: document.querySelector("#shell-words-letters"),
+    shellWordsStatus: document.querySelector("#shell-words-status"),
+    shellWordsFound: document.querySelector("#shell-words-found"),
+    shellWordsSummary: document.querySelector("#shell-words-summary"),
+    shellWordsReward: document.querySelector("#shell-words-reward")
   };
 
   applyStaticCopy();
@@ -367,6 +490,7 @@
   let sweetieAssetRequestId = 0;
   let sweetieAnimationToken = 0;
   let sweetieFrameTimer = 0;
+  let currentSweetieAnimationName = null;
   let sweetieBlinkToken = 0;
   let sweetieBlinkScheduleTimer = 0;
   let sweetieBlinkFrameTimer = 0;
@@ -388,11 +512,19 @@
   let currentIdleBehavior = null;
   let isActionPlaying = false;
   let isSweetieStrolling = false;
+  let isSweetieReturningHome = false;
+  let pendingSweetieAction = null;
+  let currentBeachSectionId = "mainBeach";
+  let isSectionTransitioning = false;
+  let beachSectionTransitionTimer = 0;
   let sweetieStrollState = "home";
   let sweetieStrollToken = 0;
   let sweetieStrollScheduleTimer = 0;
   let sweetieStrollStepTimer = 0;
   let sweetieStrollStepResolve = null;
+  let sweetieReturnToken = 0;
+  let sweetieReturnTimer = 0;
+  let sweetieReturnResolve = null;
   let sweetieDepthAnimationFrame = 0;
   let sceneDepthRefreshFrame = 0;
   let currentSweetieRoamPosition = { ...SWEETIE_STROLL_CONFIG.home };
@@ -401,13 +533,18 @@
   const sweetieSourceStatus = new Map();
   const sweetieSourcePromises = new Map();
   const sweetieAnimationPromises = new Map();
+  const sweetieAnimationFrameSets = new Map();
   const warnedSweetieSources = new Set();
   const beachAssetStatus = new Map();
   const beachAssetPromises = new Map();
   const warnedBeachAssets = new Set();
+  const uiIconAssetStatus = new Map();
+  const uiIconAssetPromises = new Map();
+  const warnedUiIconAssets = new Set();
   const decodedImagePromises = new Map();
   const imageAssetDimensions = new Map();
   const warnedFrameDimensionGroups = new Set();
+  let shellWords = createShellWordsSession();
 
   function clamp(value) {
     return Math.max(0, Math.min(100, Number(value) || 0));
@@ -568,6 +705,12 @@
     console.warn(`[Beach assets] Optional ${label} not found at ${src}; keeping the CSS fallback.`);
   }
 
+  function warnMissingUiIconAsset(label, src) {
+    if (warnedUiIconAssets.has(src)) return;
+    warnedUiIconAssets.add(src);
+    console.warn(`[UI icon assets] Optional ${label} not found at ${src}; keeping the CSS/text fallback.`);
+  }
+
   function loadAndDecodeImage(src) {
     if (decodedImagePromises.has(src)) return decodedImagePromises.get(src);
 
@@ -617,6 +760,47 @@
       .map(({ src, dimensions }) => `${src} (${dimensions.width}x${dimensions.height})`)
       .join(", ");
     console.warn(`[Animation assets] ${groupName} frames use different canvas sizes: ${details}. The stable wrapper prevents layout shifts, but matching canvases and feet anchors will reduce artwork jitter.`);
+  }
+
+  function getUiIconAssetPath(reference) {
+    const [category, key] = String(reference || "").split(".");
+    return UI_ICON_ASSETS[category]?.[key] || "";
+  }
+
+  function preloadUiIconAsset(src, label, { warnIfMissing = true } = {}) {
+    if (!src) return Promise.resolve(false);
+    if (uiIconAssetPromises.has(src)) return uiIconAssetPromises.get(src);
+
+    uiIconAssetStatus.set(src, "loading");
+    const promise = loadAndDecodeImage(src)
+      .then(() => {
+        uiIconAssetStatus.set(src, "ready");
+        return true;
+      })
+      .catch(() => {
+        uiIconAssetStatus.set(src, "missing");
+        if (warnIfMissing) warnMissingUiIconAsset(label, src);
+        return false;
+      });
+    uiIconAssetPromises.set(src, promise);
+    return promise;
+  }
+
+  function activateUiIconElement(element) {
+    const reference = element.dataset.uiIcon;
+    const src = getUiIconAssetPath(reference);
+    if (!reference || !src) return;
+
+    preloadUiIconAsset(src, `icon "${reference}"`).then((isReady) => {
+      if (!isReady) return;
+      element.setAttribute("src", src);
+      element.classList.add("asset-ready");
+      element.parentElement?.classList.add("has-ui-icon-asset");
+    });
+  }
+
+  function initializeUiIconAssets() {
+    document.querySelectorAll("[data-ui-icon]").forEach(activateUiIconElement);
   }
 
   function preloadBeachAsset(src, label, { warnIfMissing = true } = {}) {
@@ -673,7 +857,7 @@
       preloadBeachAsset(BEACH_PROP_ASSETS[key], `stand talking frame "${key}"`, { warnIfMissing: false });
     });
   }
-  function preloadSweetieSource(src, label = `sprite ${src}`) {
+  function preloadSweetieSource(src, label = `sprite ${src}`, { warnIfMissing = true } = {}) {
     if (!src) return Promise.resolve(false);
     if (sweetieSourcePromises.has(src)) return sweetieSourcePromises.get(src);
 
@@ -685,7 +869,7 @@
       })
       .catch(() => {
         sweetieSourceStatus.set(src, "missing");
-        warnMissingSweetieSource(label, src);
+        if (warnIfMissing) warnMissingSweetieSource(label, src);
         return false;
       });
     sweetieSourcePromises.set(src, promise);
@@ -701,12 +885,25 @@
     const animation = SWEETIE_ANIMATIONS[name];
     if (!animation) return Promise.resolve(false);
 
-    const promise = Promise.all(animation.frames.map((src, index) => (
+    const requiredFrames = animation.frames || [];
+    const optionalFrames = animation.optionalFrames || [];
+    const promise = Promise.all(requiredFrames.map((src, index) => (
       preloadSweetieSource(src, `"${name}" frame ${String(index + 1).padStart(2, "0")}`)
-    ))).then((results) => {
-      const isReady = results.every(Boolean);
-      if (isReady) warnFrameDimensionMismatch(`Sweetie "${name}" animation`, animation.frames);
-      return isReady;
+    ))).then(async (requiredResults) => {
+      if (!requiredResults.every(Boolean)) {
+        sweetieAnimationFrameSets.delete(name);
+        return false;
+      }
+      const optionalResults = await Promise.all(optionalFrames.map((src, index) => (
+        preloadSweetieSource(src, `optional "${name}" frame ${String(requiredFrames.length + index + 1).padStart(2, "0")}`, { warnIfMissing: false })
+      )));
+      const activeFrames = [
+        ...requiredFrames,
+        ...optionalFrames.filter((src, index) => optionalResults[index])
+      ];
+      sweetieAnimationFrameSets.set(name, activeFrames);
+      warnFrameDimensionMismatch(`Sweetie "${name}" animation`, activeFrames);
+      return true;
     });
     sweetieAnimationPromises.set(name, promise);
     return promise;
@@ -723,6 +920,7 @@
     currentSweetiePose = "placeholder";
     currentSweetieSource = null;
     dom.sweetie.dataset.pose = "placeholder";
+    dom.sweetieRoamLayer.dataset.shadowPose = "placeholder";
     dom.sweetieImage.removeAttribute("src");
     dom.sweetie.classList.remove("asset-loading");
     dom.sweetie.classList.add("asset-empty");
@@ -733,6 +931,7 @@
     currentSweetiePose = pose;
     currentSweetieSource = src;
     dom.sweetie.dataset.pose = pose;
+    dom.sweetieRoamLayer.dataset.shadowPose = pose;
     dom.sweetie.classList.remove("asset-empty");
 
     if (dom.sweetieImage.getAttribute("src") === src && dom.sweetieImage.complete && dom.sweetieImage.naturalWidth > 0) {
@@ -769,6 +968,34 @@
     return SWEETIE_MOOD_ASSET_KEYS[currentSweetieMood] || "idle";
   }
 
+  function getSweetieMoodAnimationName() {
+    return SWEETIE_MOOD_ANIMATION_KEYS[currentSweetieMood] || null;
+  }
+
+  function isSweetieMoodAnimation(animationName = currentSweetieAnimationName) {
+    return Boolean(animationName) && Object.values(SWEETIE_MOOD_ANIMATION_KEYS).includes(animationName);
+  }
+
+  function canRunSweetieMoodAnimation(animationName = getSweetieMoodAnimationName()) {
+    if (!animationName || reducedMotionQuery.matches) return false;
+    const animation = SWEETIE_ANIMATIONS[animationName];
+    return Boolean(animation)
+      && animation.mood === currentSweetieMood
+      && state.hasStarted
+      && dom.welcomeScreen.hidden
+      && !activeSweetieAction
+      && !isActionPlaying
+      && !isSweetieStrolling
+      && !isSweetieReturningHome
+      && !currentIdleBehavior
+      && !document.hidden;
+  }
+
+  function isSweetieAnimationBlockingStroll() {
+    // Passive mood loops are idle-safe: the stroll walk cycle can interrupt them.
+    return isSweetieSequencePlaying && !isSweetieMoodAnimation(currentSweetieAnimationName);
+  }
+
   function clearSweetieBlinkTimers() {
     window.clearTimeout(sweetieBlinkScheduleTimer);
     window.clearTimeout(sweetieBlinkFrameTimer);
@@ -791,6 +1018,7 @@
       && !isActionPlaying
       && !isSweetieSequencePlaying
       && !isSweetieStrolling
+      && !isSweetieReturningHome
       && !document.hidden
       && currentSweetiePose === "idle"
       && currentSweetieSource === blink.frames[0];
@@ -818,18 +1046,35 @@
   async function enableSweetieIdleBlink() {
     const blink = SWEETIE_ANIMATIONS.idleBlink;
     if (!await preloadSweetieAnimation("idleBlink")) return false;
-    if (activeSweetieAction || isActionPlaying || isSweetieSequencePlaying || isSweetieStrolling || document.hidden) return false;
+    if (activeSweetieAction || isActionPlaying || isSweetieSequencePlaying || isSweetieStrolling || isSweetieReturningHome || document.hidden) return false;
     applySweetieSource(blink.frames[0], "idle");
     scheduleSweetieBlink();
     return true;
   }
 
+  async function enableSweetieMoodAnimation() {
+    const animationName = getSweetieMoodAnimationName();
+    if (!canRunSweetieMoodAnimation(animationName)) return false;
+    if (!await preloadSweetieAnimation(animationName)) return false;
+    if (!canRunSweetieMoodAnimation(animationName)) return false;
+    return playSweetieAnimation(animationName, { holdUntilStopped: true });
+  }
+
   function syncSweetieSprite() {
-    if (isSweetieSequencePlaying) return Promise.resolve(currentSweetiePose);
+    if (isSweetieSequencePlaying) {
+      if (isSweetieMoodAnimation(currentSweetieAnimationName) && !canRunSweetieMoodAnimation(currentSweetieAnimationName)) {
+        stopSweetieAnimation(false);
+      } else {
+        return Promise.resolve(currentSweetiePose);
+      }
+    }
+
     const actionKey = SWEETIE_ACTION_ASSET_KEYS[activeSweetieAction];
     return requestSweetieAsset([actionKey, getSweetieMoodAssetKey(), "idle"]).then(async (selectedKey) => {
-      if (selectedKey === "idle" && !activeSweetieAction && !isActionPlaying) {
-        await enableSweetieIdleBlink();
+      if (!activeSweetieAction && !isActionPlaying) {
+        if (await enableSweetieMoodAnimation()) return currentSweetiePose;
+        if (selectedKey === "idle") await enableSweetieIdleBlink();
+        else stopSweetieBlink(false);
       } else {
         stopSweetieBlink(false);
       }
@@ -842,6 +1087,7 @@
     window.clearTimeout(sweetieFrameTimer);
     sweetieFrameTimer = 0;
     isSweetieSequencePlaying = false;
+    currentSweetieAnimationName = null;
     if (restoreSprite) syncSweetieSprite();
   }
 
@@ -857,26 +1103,29 @@
     }
     if (token !== sweetieAnimationToken || (requireActiveAction && activeSweetieAction !== actionName)) return false;
 
+    const activeFrames = sweetieAnimationFrameSets.get(animationName) || animation.frames;
     sweetieAssetRequestId += 1;
     isSweetieSequencePlaying = true;
+    currentSweetieAnimationName = animationName;
     let frameIndex = 0;
-    applySweetieSource(animation.frames[frameIndex], `${animationName}-frame-${frameIndex + 1}`);
+    applySweetieSource(activeFrames[frameIndex], `${animationName}-frame-${frameIndex + 1}`);
 
     const advanceFrame = () => {
       if (token !== sweetieAnimationToken || !isSweetieSequencePlaying) return;
       frameIndex += 1;
-      if (frameIndex >= animation.frames.length) {
+      if (frameIndex >= activeFrames.length) {
         if (!animation.loop) {
           sweetieFrameTimer = 0;
           if (!holdUntilStopped) {
             isSweetieSequencePlaying = false;
+            currentSweetieAnimationName = null;
             syncSweetieSprite();
           }
           return;
         }
         frameIndex = 0;
       }
-      applySweetieSource(animation.frames[frameIndex], `${animationName}-frame-${frameIndex + 1}`);
+      applySweetieSource(activeFrames[frameIndex], `${animationName}-frame-${frameIndex + 1}`);
       sweetieFrameTimer = window.setTimeout(advanceFrame, animation.frameDuration);
     };
     sweetieFrameTimer = window.setTimeout(advanceFrame, animation.frameDuration);
@@ -976,11 +1225,14 @@
     const home = SWEETIE_STROLL_CONFIG.home;
     const xOffset = (position.x - home.x) * sceneWidth;
     const yOffset = (position.y - home.y) * sceneHeight;
+    const depthScale = Math.max(0.55, Math.min(1, Number(position.scale) || 1));
+    const shadowDepth = 0.68 + depthScale * 0.32;
 
     dom.sweetieRoamLayer.style.setProperty("--sweetie-roam-duration", String(Math.max(0, duration)) + "ms");
     dom.sweetieRoamLayer.style.setProperty("--sweetie-roam-x", String(xOffset) + "px");
     dom.sweetieRoamLayer.style.setProperty("--sweetie-roam-y", String(yOffset) + "px");
     dom.sweetieRoamLayer.style.setProperty("--sweetie-roam-scale", position.scale);
+    dom.sweetieRoamLayer.style.setProperty("--sweetie-shadow-depth", shadowDepth.toFixed(3));
     animateSweetieSceneDepth(previousPosition.y, position.y, Math.max(0, duration));
   }
 
@@ -1001,8 +1253,146 @@
     };
   }
 
-  function waitForSweetieStrollStep(duration, token) {
+  function clearSweetieStrollStep(resolveValue = false) {
     window.clearTimeout(sweetieStrollStepTimer);
+    sweetieStrollStepTimer = 0;
+    if (sweetieStrollStepResolve) {
+      const resolveStep = sweetieStrollStepResolve;
+      sweetieStrollStepResolve = null;
+      resolveStep(resolveValue);
+    }
+  }
+
+
+  function getCurrentBeachSection() {
+    return BEACH_SECTION_BY_ID[currentBeachSectionId] || BEACH_SECTION_BY_ID.mainBeach;
+  }
+
+  function getAdjacentBeachSection(direction) {
+    const currentSection = getCurrentBeachSection();
+    const adjacentId = direction === "left" ? currentSection.leftSectionId : currentSection.rightSectionId;
+    return adjacentId ? BEACH_SECTION_BY_ID[adjacentId] : null;
+  }
+
+  function setSectionTransitioning(isTransitioning, direction = "right", phase = null) {
+    isSectionTransitioning = isTransitioning;
+    dom.beachScene.classList.toggle("is-section-transitioning", isTransitioning);
+    dom.beachScene.classList.toggle("is-section-exiting", isTransitioning && phase === "exit");
+    dom.beachScene.classList.toggle("is-section-entering", isTransitioning && phase === "enter");
+    if (isTransitioning) dom.beachScene.dataset.sectionDirection = direction;
+    else delete dom.beachScene.dataset.sectionDirection;
+    updateBeachNavigationControls();
+  }
+
+  function updateBeachNavigationControls() {
+    const currentSection = getCurrentBeachSection();
+    const leftSection = currentSection.leftSectionId ? BEACH_SECTION_BY_ID[currentSection.leftSectionId] : null;
+    const rightSection = currentSection.rightSectionId ? BEACH_SECTION_BY_ID[currentSection.rightSectionId] : null;
+    const navigationLocked = isSectionTransitioning || !state.hasStarted;
+
+    dom.beachNavLeft.hidden = !leftSection;
+    dom.beachNavRight.hidden = !rightSection;
+    dom.beachNavLeft.disabled = navigationLocked || !leftSection;
+    dom.beachNavRight.disabled = navigationLocked || !rightSection;
+    dom.beachNavLeft.setAttribute("aria-disabled", String(navigationLocked || !leftSection));
+    dom.beachNavRight.setAttribute("aria-disabled", String(navigationLocked || !rightSection));
+
+    if (leftSection) {
+      const leftLabel = copyText("beachSections.goTo", "Go to {section}", { section: leftSection.title });
+      dom.beachNavLeftLabel.textContent = leftSection.title;
+      dom.beachNavLeft.setAttribute("aria-label", leftLabel);
+      dom.beachNavLeft.setAttribute("title", leftLabel);
+    }
+    if (rightSection) {
+      const rightLabel = copyText("beachSections.goTo", "Go to {section}", { section: rightSection.title });
+      dom.beachNavRightLabel.textContent = rightSection.title;
+      dom.beachNavRight.setAttribute("aria-label", rightLabel);
+      dom.beachNavRight.setAttribute("title", rightLabel);
+    }
+  }
+
+  function renderBeachSection() {
+    const currentSection = getCurrentBeachSection();
+    currentBeachSectionId = currentSection.id;
+    dom.beachScene.dataset.sectionId = currentSection.id;
+    dom.beachSectionTitle.textContent = currentSection.title;
+    dom.beachSectionNote.textContent = currentSection.description;
+    dom.beachSectionNote.hidden = currentSection.id === "mainBeach";
+    updateBeachNavigationControls();
+    updateFixedSceneDepth();
+  }
+
+  function prepareForBeachSectionTransition() {
+    window.clearTimeout(sweetieStrollScheduleTimer);
+    window.clearTimeout(idleScheduleTimer);
+    window.clearTimeout(reactionTimer);
+    cancelSweetieStroll({ restoreSprite: false, resetPosition: true });
+    stopSweetieReturnHome({ resetPosition: true, restoreSprite: false, clearPending: true });
+    hideThoughtBubble();
+    hideStandSpeechBubble();
+    stopStandTalkingAnimation();
+    clearIdleBehavior();
+    dom.sweetie.classList.remove(...reactionClasses);
+    isActionPlaying = false;
+    activeSweetieAction = null;
+    pendingSweetieAction = null;
+    setSweetieStrollState("home");
+    setSweetieFacing("right");
+    setSweetieRoamPosition(SWEETIE_STROLL_CONFIG.home, 0);
+    stopSweetieAnimation(false);
+    stopSweetieBlink(false);
+  }
+
+  function goToBeachSection(sectionId) {
+    const targetSection = BEACH_SECTION_BY_ID[sectionId];
+    const currentSection = getCurrentBeachSection();
+    if (!targetSection || targetSection.id === currentSection.id || isSectionTransitioning || !state.hasStarted) return false;
+
+    const currentIndex = BEACH_SECTIONS.findIndex((section) => section.id === currentSection.id);
+    const targetIndex = BEACH_SECTIONS.findIndex((section) => section.id === targetSection.id);
+    const direction = targetIndex < currentIndex ? "left" : "right";
+    const halfDuration = BEACH_SECTION_TRANSITION_MS / 2;
+
+    window.clearTimeout(beachSectionTransitionTimer);
+    prepareForBeachSectionTransition();
+    setSectionTransitioning(true, direction, "exit");
+
+    beachSectionTransitionTimer = window.setTimeout(() => {
+      currentBeachSectionId = targetSection.id;
+      renderBeachSection();
+      setSweetieRoamPosition(SWEETIE_STROLL_CONFIG.home, 0);
+      syncSweetieSprite();
+      setSectionTransitioning(true, direction, "enter");
+
+      beachSectionTransitionTimer = window.setTimeout(() => {
+        beachSectionTransitionTimer = 0;
+        setSectionTransitioning(false);
+        lastInteractionAt = Date.now();
+        syncThoughtBubble();
+        scheduleIdleBehavior(5_000);
+        scheduleSweetieStroll();
+      }, halfDuration);
+    }, halfDuration);
+    return true;
+  }
+
+  function goToAdjacentBeachSection(direction) {
+    const adjacentSection = getAdjacentBeachSection(direction);
+    return adjacentSection ? goToBeachSection(adjacentSection.id) : false;
+  }
+
+  function shouldIgnoreBeachNavigationKey(event) {
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return true;
+    if (!state.hasStarted || !dom.welcomeScreen.hidden || dom.dialog.open || isShellWordsOpen() || isSectionTransitioning) return true;
+    const activeElement = document.activeElement;
+    if (!activeElement || activeElement === document.body || activeElement === document.documentElement) return false;
+    if (activeElement.closest?.("[hidden], .welcome-hidden")) return false;
+    const activeDialog = activeElement.closest?.("dialog");
+    if (activeDialog && !activeDialog.open) return false;
+    return Boolean(activeElement.closest?.("input, textarea, select, button, a, [contenteditable='true']"));
+  }
+  function waitForSweetieStrollStep(duration, token) {
+    clearSweetieStrollStep(false);
     return new Promise((resolve) => {
       sweetieStrollStepResolve = resolve;
       sweetieStrollStepTimer = window.setTimeout(() => {
@@ -1013,17 +1403,67 @@
     });
   }
 
+  function clearSweetieReturnStep(resolveValue = false) {
+    window.clearTimeout(sweetieReturnTimer);
+    sweetieReturnTimer = 0;
+    if (sweetieReturnResolve) {
+      const resolveReturn = sweetieReturnResolve;
+      sweetieReturnResolve = null;
+      resolveReturn(resolveValue);
+    }
+  }
+
+  function waitForSweetieReturnHomeStep(duration, token) {
+    clearSweetieReturnStep(false);
+    if (duration <= 0) return Promise.resolve(token === sweetieReturnToken && isSweetieReturningHome);
+    return new Promise((resolve) => {
+      sweetieReturnResolve = resolve;
+      sweetieReturnTimer = window.setTimeout(() => {
+        sweetieReturnTimer = 0;
+        sweetieReturnResolve = null;
+        resolve(token === sweetieReturnToken && isSweetieReturningHome);
+      }, duration + 30);
+    });
+  }
+
+  function isSweetieCareAction(action) {
+    return SWEETIE_CARE_ACTIONS.includes(action);
+  }
+
+  function isSweetieAtHome() {
+    const home = SWEETIE_STROLL_CONFIG.home;
+    return sweetieStrollState === "home"
+      && Math.abs(currentSweetieRoamPosition.x - home.x) < 0.001
+      && Math.abs(currentSweetieRoamPosition.y - home.y) < 0.001
+      && Math.abs(currentSweetieRoamPosition.scale - home.scale) < 0.001;
+  }
+
+  function showReturningHomeMessage() {
+    showMessage(pick(messages.returningHome));
+  }
+
+  function setSweetieCareActionsLocked(isLocked) {
+    dom.careActionButtons.forEach((button) => {
+      button.classList.toggle("is-return-locked", isLocked);
+      if (isLocked) button.setAttribute("aria-disabled", "true");
+      else button.removeAttribute("aria-disabled");
+    });
+  }
+
   function canStartSweetieStroll() {
     return SWEETIE_STROLL_CONFIG.enabled
       && state.hasStarted
       && dom.welcomeScreen.hidden
-      && !dom.dialog.open
+      && !dom.dialog.open && !isShellWordsOpen()
       && !document.hidden
       && !reducedMotionQuery.matches
       && !isSweetieStrolling
+      && !isSweetieReturningHome
+      && !isSectionTransitioning
+      && !pendingSweetieAction
       && !isActionPlaying
       && !activeSweetieAction
-      && !isSweetieSequencePlaying
+      && !isSweetieAnimationBlockingStroll()
       && !currentIdleBehavior
       && Date.now() - lastInteractionAt >= SWEETIE_STROLL_CONFIG.idleDelayMin;
   }
@@ -1068,25 +1508,95 @@
     return true;
   }
 
-  function cancelSweetieStroll({ restoreSprite = true } = {}) {
+  function cancelSweetieStroll({ restoreSprite = true, resetPosition = true } = {}) {
     window.clearTimeout(sweetieStrollScheduleTimer);
     sweetieStrollScheduleTimer = 0;
     sweetieStrollToken += 1;
-    window.clearTimeout(sweetieStrollStepTimer);
-    sweetieStrollStepTimer = 0;
-    if (sweetieStrollStepResolve) {
-      const resolveStep = sweetieStrollStepResolve;
-      sweetieStrollStepResolve = null;
-      resolveStep(false);
-    }
+    clearSweetieStrollStep(false);
 
     isSweetieStrolling = false;
     dom.sweetieRoamLayer.classList.remove("is-strolling", "walk-fallback");
+    if (resetPosition) {
+      setSweetieStrollState("home");
+      setSweetieFacing("right");
+      setSweetieRoamPosition(SWEETIE_STROLL_CONFIG.home, 0);
+    }
+    stopSweetieAnimation(false);
+    if (restoreSprite) syncSweetieSprite();
+  }
+
+  function stopSweetieReturnHome({ resetPosition = false, restoreSprite = true, clearPending = false } = {}) {
+    sweetieReturnToken += 1;
+    clearSweetieReturnStep(false);
+    isSweetieReturningHome = false;
+    dom.sweetieRoamLayer.classList.remove("is-returning-home", "run-fallback");
+    setSweetieCareActionsLocked(false);
+    if (clearPending) pendingSweetieAction = null;
+    if (resetPosition) {
+      setSweetieStrollState("home");
+      setSweetieFacing("right");
+      setSweetieRoamPosition(SWEETIE_STROLL_CONFIG.home, 0);
+    }
+    stopSweetieAnimation(false);
+    if (restoreSprite) syncSweetieSprite();
+  }
+
+  function finishSweetieReturnHome(token) {
+    if (token !== sweetieReturnToken || !isSweetieReturningHome) return false;
+    clearSweetieReturnStep(false);
+    isSweetieReturningHome = false;
+    dom.sweetieRoamLayer.classList.remove("is-returning-home", "run-fallback");
     setSweetieStrollState("home");
     setSweetieFacing("right");
     setSweetieRoamPosition(SWEETIE_STROLL_CONFIG.home, 0);
+    setSweetieCareActionsLocked(false);
     stopSweetieAnimation(false);
-    if (restoreSprite) syncSweetieSprite();
+
+    const queuedAction = pendingSweetieAction;
+    pendingSweetieAction = null;
+    if (queuedAction) {
+      runActionNow(queuedAction.action, queuedAction.button);
+    } else {
+      syncSweetieSprite();
+      syncThoughtBubble();
+      scheduleIdleBehavior();
+      scheduleSweetieStroll();
+    }
+    return true;
+  }
+
+  async function startSweetieReturnHome({ pendingAction = null } = {}) {
+    if (pendingAction && !pendingSweetieAction) pendingSweetieAction = pendingAction;
+    if (isSweetieReturningHome) {
+      setSweetieCareActionsLocked(true);
+      return false;
+    }
+
+    window.clearTimeout(sweetieStrollScheduleTimer);
+    window.clearTimeout(idleScheduleTimer);
+    clearIdleBehavior();
+    hideThoughtBubble();
+    stopSweetieBlink(false);
+    cancelSweetieStroll({ restoreSprite: false, resetPosition: false });
+
+    const token = ++sweetieReturnToken;
+    const duration = reducedMotionQuery.matches ? 0 : SWEETIE_STROLL_CONFIG.returnDuration;
+    isSweetieReturningHome = true;
+    setSweetieCareActionsLocked(true);
+    dom.sweetieRoamLayer.classList.add("is-returning-home");
+    dom.sweetieRoamLayer.classList.remove("walk-fallback");
+    setSweetieStrollState("returningHome");
+    setSweetieFacing("right");
+
+    const hasRunFrames = reducedMotionQuery.matches
+      ? false
+      : await playSweetieAnimation("returnHomeRun", { holdUntilStopped: true });
+    if (token !== sweetieReturnToken || !isSweetieReturningHome) return false;
+
+    dom.sweetieRoamLayer.classList.toggle("run-fallback", !hasRunFrames && duration > 0);
+    setSweetieRoamPosition(SWEETIE_STROLL_CONFIG.home, duration);
+    if (!await waitForSweetieReturnHomeStep(duration, token)) return false;
+    return finishSweetieReturnHome(token);
   }
 
   async function startSweetieStroll() {
@@ -1157,11 +1667,7 @@
       if (!await waitForSweetieStrollStep(reentryDuration, token)) return false;
     }
 
-    setSweetieStrollState("returning");
-    setSweetieFacing(currentSweetieRoamPosition.x > SWEETIE_STROLL_CONFIG.home.x ? "left" : "right");
-    setSweetieRoamPosition(SWEETIE_STROLL_CONFIG.home, SWEETIE_STROLL_CONFIG.returnDuration);
-    if (!await waitForSweetieStrollStep(SWEETIE_STROLL_CONFIG.returnDuration, token)) return false;
-    return finishSweetieStroll(token);
+    return startSweetieReturnHome();
   }
   function setSweetiePose(pose = "idle") {
     stopSweetieAnimation(false);
@@ -1176,7 +1682,10 @@
       sweetieSourceStatus.set(failedSource, "missing");
       sweetieSourcePromises.set(failedSource, Promise.resolve(false));
       for (const [name, animation] of Object.entries(SWEETIE_ANIMATIONS)) {
-        if (animation.frames.includes(failedSource)) sweetieAnimationPromises.delete(name);
+        if (animation.frames.includes(failedSource) || animation.optionalFrames?.includes(failedSource)) {
+          sweetieAnimationPromises.delete(name);
+          sweetieAnimationFrameSets.delete(name);
+        }
       }
       warnMissingSweetieSource(`visible frame`, failedSource);
     }
@@ -1263,8 +1772,9 @@
     return state.fullness < THOUGHT_BUBBLE_CONFIG.snackishFullnessThreshold
       && state.hasStarted
       && dom.welcomeScreen.hidden
-      && !dom.dialog.open
+      && !dom.dialog.open && !isShellWordsOpen()
       && !document.hidden
+      && !isSectionTransitioning
       && !isActionPlaying
       && !activeSweetieAction
       && !isSweetieSequencePlaying
@@ -1498,10 +2008,12 @@
   function canRunIdleBehavior() {
     return state.hasStarted
       && dom.welcomeScreen.hidden
-      && !dom.dialog.open
+      && !dom.dialog.open && !isShellWordsOpen()
       && !document.hidden
       && !isActionPlaying
       && !isSweetieStrolling
+      && !isSweetieReturningHome
+      && !isSectionTransitioning
       && Date.now() - lastInteractionAt > 4_000;
   }
 
@@ -1703,6 +2215,352 @@
       ]
     });
   }
+
+  function createShellWordsSession() {
+    return {
+      state: "notStarted",
+      puzzle: null,
+      letters: [],
+      selectedIndexes: [],
+      foundWords: new Set(),
+      foundBonusWords: new Set(),
+      secondsRemaining: SHELL_WORDS_ROUND_SECONDS,
+      timerId: 0,
+      status: getCopy("shellWords.readyStatus", "Ready when you are."),
+      result: null
+    };
+  }
+
+  function normalizeShellWord(word) {
+    return String(word || "").trim().toLowerCase();
+  }
+
+  function getShellWordsList(puzzle, key) {
+    return Array.isArray(puzzle?.[key]) ? puzzle[key].map(normalizeShellWord).filter(Boolean) : [];
+  }
+
+  function getShellWordsTarget(puzzle = shellWords.puzzle) {
+    return Math.max(1, Number(puzzle?.wordsToWin) || 5);
+  }
+
+  function getShellWordsMinimum(puzzle = shellWords.puzzle) {
+    return Math.max(1, Number(puzzle?.minimumLength) || 3);
+  }
+
+  function getShellWordsCurrentWord() {
+    return shellWords.selectedIndexes.map((index) => shellWords.letters[index] || "").join("").toLowerCase();
+  }
+
+  function shuffleShellWordsArray(items) {
+    const shuffled = [...items];
+    for (let index = shuffled.length - 1; index > 0; index -= 1) {
+      const target = Math.floor(Math.random() * (index + 1));
+      [shuffled[index], shuffled[target]] = [shuffled[target], shuffled[index]];
+    }
+    return shuffled;
+  }
+
+  function pickShellWordsPuzzle() {
+    const playablePuzzles = SHELL_WORD_PUZZLES.filter((puzzle) => (
+      puzzle
+      && Array.isArray(puzzle.letters)
+      && puzzle.letters.length >= 6
+      && puzzle.letters.length <= 7
+      && getShellWordsList(puzzle, "acceptedWords").length >= 10
+    ));
+    return pick(playablePuzzles.length ? playablePuzzles : SHELL_WORD_PUZZLES);
+  }
+
+  function setupShellWordsRound() {
+    const nextPuzzle = pickShellWordsPuzzle();
+    shellWords = createShellWordsSession();
+    if (!nextPuzzle) {
+      shellWords.status = getCopy("shellWords.unavailableStatus", "No shell piles are ready yet.");
+      return false;
+    }
+    shellWords.puzzle = nextPuzzle;
+    shellWords.letters = shuffleShellWordsArray(nextPuzzle.letters.map((letter) => String(letter).toUpperCase()));
+    return true;
+  }
+
+  function isShellWordsOpen() {
+    return Boolean(dom.shellWordsDialog?.open || dom.shellWordsDialog?.hasAttribute("open"));
+  }
+
+  function formatShellWordsTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
+  }
+
+  function canMakeShellWord(word, letters) {
+    const counts = new Map();
+    letters.map((letter) => normalizeShellWord(letter)).forEach((letter) => {
+      counts.set(letter, (counts.get(letter) || 0) + 1);
+    });
+    return normalizeShellWord(word).split("").every((letter) => {
+      const remaining = counts.get(letter) || 0;
+      if (remaining <= 0) return false;
+      counts.set(letter, remaining - 1);
+      return true;
+    });
+  }
+
+  function createShellWordsResult(timedOut) {
+    const wordsFound = shellWords.foundWords.size;
+    const targetWords = getShellWordsTarget();
+    const completed = !timedOut && wordsFound >= targetWords;
+    return {
+      miniGame: "shellWords",
+      puzzleId: shellWords.puzzle?.id || "unknown",
+      completed,
+      wordsFound,
+      targetWords,
+      timedOut,
+      rewardTier: completed ? "full" : wordsFound > 0 ? "partial" : "none",
+      rewardPendingImplementation: true
+    };
+  }
+
+  function stopShellWordsTimer() {
+    window.clearInterval(shellWords.timerId);
+    shellWords.timerId = 0;
+  }
+
+  function endShellWordsRound(nextState) {
+    stopShellWordsTimer();
+    shellWords.state = nextState;
+    shellWords.result = createShellWordsResult(nextState === "timedOut");
+    shellWords.status = nextState === "completed"
+      ? getCopy("shellWords.completedStatus", "Five words found. Sweetie declares this a tiny triumph.")
+      : getCopy("shellWords.timedOutStatus", "Time is up, but the beach remains very proud of you.");
+    renderShellWords();
+  }
+
+  function startShellWordsTimer() {
+    stopShellWordsTimer();
+    shellWords.timerId = window.setInterval(() => {
+      if (shellWords.state !== "playing") {
+        stopShellWordsTimer();
+        return;
+      }
+      shellWords.secondsRemaining = Math.max(0, shellWords.secondsRemaining - 1);
+      if (shellWords.secondsRemaining <= 0) {
+        endShellWordsRound("timedOut");
+        return;
+      }
+      renderShellWords();
+    }, 1000);
+  }
+
+  function startShellWordsRound() {
+    if (!shellWords.puzzle || ["completed", "timedOut", "exited"].includes(shellWords.state)) {
+      if (!setupShellWordsRound()) {
+        renderShellWords();
+        return;
+      }
+    } else {
+      const previewPuzzle = shellWords.puzzle;
+      shellWords = createShellWordsSession();
+      shellWords.puzzle = previewPuzzle;
+      shellWords.letters = shuffleShellWordsArray(previewPuzzle.letters.map((letter) => String(letter).toUpperCase()));
+    }
+    shellWords.state = "playing";
+    shellWords.status = getCopy("shellWords.startStatus", "The shells are listening.");
+    startShellWordsTimer();
+    renderShellWords();
+  }
+
+  function validateShellWordsSubmission(word) {
+    if (!shellWords.puzzle) return { valid: false, message: getCopy("shellWords.unavailableStatus", "No shell piles are ready yet.") };
+    const minimum = getShellWordsMinimum();
+    if (word.length < minimum) {
+      return { valid: false, message: copyText("shellWords.tooShortStatus", "Tiny word, tiny pause - try at least {minimum} letters.", { minimum }) };
+    }
+    if (!canMakeShellWord(word, shellWords.puzzle.letters)) {
+      return { valid: false, message: getCopy("shellWords.notFromLettersStatus", "Those letters are not all in this shell pile.") };
+    }
+    const acceptedWords = getShellWordsList(shellWords.puzzle, "acceptedWords");
+    const bonusWords = getShellWordsList(shellWords.puzzle, "bonusWords");
+    if (shellWords.foundWords.has(word) || shellWords.foundBonusWords.has(word)) {
+      return { valid: false, message: getCopy("shellWords.duplicateStatus", "Already found. Sweetie is politely impressed twice.") };
+    }
+    if (acceptedWords.includes(word)) {
+      return { valid: true, type: "accepted", message: copyText("shellWords.acceptedStatus", "Found: {word}", { word }) };
+    }
+    if (bonusWords.includes(word)) {
+      return { valid: true, type: "bonus", message: copyText("shellWords.bonusStatus", "Bonus shell word: {word}", { word }) };
+    }
+    return { valid: false, message: getCopy("shellWords.notAcceptedStatus", "Sweetie tilts her head. Try another beachy little word.") };
+  }
+
+  function submitShellWordsWord() {
+    if (shellWords.state !== "playing") return;
+    const word = getShellWordsCurrentWord();
+    if (!word) {
+      shellWords.status = getCopy("shellWords.emptyWord", "Tap shells to spell a word.");
+      renderShellWords();
+      return;
+    }
+    const validation = validateShellWordsSubmission(word);
+    shellWords.status = validation.message;
+    if (!validation.valid) {
+      renderShellWords();
+      return;
+    }
+    if (validation.type === "accepted") shellWords.foundWords.add(word);
+    else shellWords.foundBonusWords.add(word);
+    shellWords.selectedIndexes = [];
+    if (shellWords.foundWords.size >= getShellWordsTarget()) {
+      endShellWordsRound("completed");
+      return;
+    }
+    renderShellWords();
+  }
+
+  function selectShellWordsLetter(index) {
+    if (shellWords.state !== "playing" || shellWords.selectedIndexes.includes(index)) return;
+    shellWords.selectedIndexes.push(index);
+    renderShellWords();
+  }
+
+  function selectShellWordsLetterByCharacter(letter) {
+    const upperLetter = String(letter).toUpperCase();
+    const index = shellWords.letters.findIndex((candidate, candidateIndex) => (
+      candidate === upperLetter && !shellWords.selectedIndexes.includes(candidateIndex)
+    ));
+    if (index >= 0) selectShellWordsLetter(index);
+  }
+
+  function clearShellWordsSelection() {
+    if (shellWords.state !== "playing") return;
+    shellWords.selectedIndexes = [];
+    renderShellWords();
+  }
+
+  function removeLastShellWordsLetter() {
+    if (shellWords.state !== "playing" || !shellWords.selectedIndexes.length) return;
+    shellWords.selectedIndexes.pop();
+    renderShellWords();
+  }
+
+  function shuffleShellWordsLetters() {
+    if (shellWords.state !== "playing") return;
+    shellWords.letters = shuffleShellWordsArray(shellWords.letters);
+    shellWords.selectedIndexes = [];
+    renderShellWords();
+  }
+
+  function renderShellWords() {
+    if (!dom.shellWordsPanel) return;
+    const target = getShellWordsTarget();
+    const found = shellWords.foundWords.size;
+    const currentWord = getShellWordsCurrentWord();
+    dom.shellWordsPanel.dataset.state = shellWords.state;
+    dom.shellWordsTimer.textContent = formatShellWordsTime(shellWords.secondsRemaining);
+    dom.shellWordsTimer.classList.toggle("is-low", shellWords.state === "playing" && shellWords.secondsRemaining <= 30);
+    dom.shellWordsProgress.textContent = copyText("shellWords.progressText", "{found} / {target}", { found, target });
+    dom.shellWordsPuzzleTitle.textContent = shellWords.puzzle
+      ? copyText("shellWords.puzzleTitle", "Shell pile: {title}", { title: shellWords.puzzle.title || shellWords.puzzle.id || "Mystery shells" })
+      : getCopy("shellWords.unavailableStatus", "No shell piles are ready yet.");
+    dom.shellWordsCurrent.textContent = currentWord ? currentWord.toUpperCase() : getCopy("shellWords.emptyWord", "Tap shells to spell a word.");
+    dom.shellWordsStatus.textContent = shellWords.status || getCopy("shellWords.readyStatus", "Ready when you are.");
+
+    dom.shellWordsLetters.innerHTML = "";
+    shellWords.letters.forEach((letter, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "shell-letter";
+      button.textContent = letter;
+      button.dataset.shellLetterIndex = String(index);
+      button.setAttribute("aria-label", `Add letter ${letter}`);
+      if (shellWords.selectedIndexes.includes(index)) button.classList.add("is-selected");
+      button.disabled = shellWords.state !== "playing" || shellWords.selectedIndexes.includes(index);
+      dom.shellWordsLetters.append(button);
+    });
+
+    dom.shellWordsFound.innerHTML = "";
+    const foundEntries = [
+      ...Array.from(shellWords.foundWords).map((word) => ({ word, bonus: false })),
+      ...Array.from(shellWords.foundBonusWords).map((word) => ({ word, bonus: true }))
+    ];
+    if (!foundEntries.length) {
+      const emptyItem = document.createElement("li");
+      emptyItem.className = "is-empty";
+      emptyItem.textContent = getCopy("shellWords.readyStatus", "Ready when you are.");
+      dom.shellWordsFound.append(emptyItem);
+    } else {
+      foundEntries.forEach(({ word, bonus }) => {
+        const item = document.createElement("li");
+        item.className = bonus ? "is-bonus" : "";
+        item.textContent = bonus ? `${word} +` : word;
+        dom.shellWordsFound.append(item);
+      });
+    }
+
+    dom.shellWordsStart.disabled = shellWords.state === "playing";
+    dom.shellWordsStart.textContent = shellWords.state === "completed" || shellWords.state === "timedOut" || shellWords.state === "exited"
+      ? getCopy("shellWords.newRoundButton", "New round")
+      : getCopy("shellWords.startButton", "Start round");
+    dom.shellWordsSubmit.disabled = shellWords.state !== "playing" || !shellWords.selectedIndexes.length;
+    dom.shellWordsClear.disabled = shellWords.state !== "playing" || !shellWords.selectedIndexes.length;
+    dom.shellWordsShuffle.disabled = shellWords.state !== "playing";
+
+    if (shellWords.result) {
+      const summaryKey = shellWords.result.timedOut ? "shellWords.summaryTimedOut" : "shellWords.summaryCompleted";
+      const summaryFallback = shellWords.result.timedOut
+        ? "Round ended: {found} of {target} target words found, plus {bonus} bonus words."
+        : "Round complete: {found} target words and {bonus} bonus words found.";
+      dom.shellWordsSummary.hidden = false;
+      dom.shellWordsSummary.textContent = copyText(summaryKey, summaryFallback, {
+        found: shellWords.foundWords.size,
+        target,
+        bonus: shellWords.foundBonusWords.size
+      });
+      dom.shellWordsReward.hidden = false;
+      dom.shellWordsReward.textContent = copyText("shellWords.rewardPending", "Reward tier: {tier}. Rewards will connect in a later pass.", { tier: shellWords.result.rewardTier });
+    } else {
+      dom.shellWordsSummary.hidden = true;
+      dom.shellWordsReward.hidden = true;
+    }
+  }
+
+  function openShellWords() {
+    if (!shellWords.puzzle || ["completed", "timedOut", "exited"].includes(shellWords.state)) setupShellWordsRound();
+    renderShellWords();
+    if (typeof dom.shellWordsDialog.showModal === "function") dom.shellWordsDialog.showModal();
+    else dom.shellWordsDialog.setAttribute("open", "");
+    dom.shellWordsStart.focus({ preventScroll: true });
+  }
+
+  function closeShellWords() {
+    if (shellWords.state === "playing") {
+      stopShellWordsTimer();
+      shellWords.state = "exited";
+      shellWords.status = getCopy("shellWords.exitedStatus", "Shell Words tucked back into the beach bag.");
+      shellWords.result = createShellWordsResult(false);
+    }
+    if (typeof dom.shellWordsDialog.close === "function") dom.shellWordsDialog.close();
+    else dom.shellWordsDialog.removeAttribute("open");
+    lastInteractionAt = Date.now();
+    syncThoughtBubble();
+    scheduleIdleBehavior();
+    scheduleSweetieStroll();
+  }
+
+  function handleShellWordsKeydown(event) {
+    if (shellWords.state !== "playing" || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (event.key === "Enter") {
+      event.preventDefault();
+      submitShellWordsWord();
+    } else if (event.key === "Backspace") {
+      event.preventDefault();
+      removeLastShellWordsLetter();
+    } else if (/^[a-z]$/i.test(event.key)) {
+      event.preventDefault();
+      selectShellWordsLetterByCharacter(event.key);
+    }
+  }
   function showFeature(title, message, icon) {
     dom.dialogTitle.textContent = title;
     dom.dialogMessage.textContent = message;
@@ -1750,6 +2608,7 @@
       fetch: playFetch,
       nap: takeNap,
       stand: visitStand,
+      shellWords: openShellWords,
       outfits: () => showFeature(getCopy("features.outfitsTitle", "Sweetie's closet"), getCopy("features.outfitsMessage", "Sweetie's closet is coming soon."), "\u2726"),
       tricks: () => showFeature(getCopy("features.tricksTitle", "Trick school"), getCopy("features.tricksMessage", "Sweetie will learn tricks soon."), "\u2605"),
       quest: openQuest,
@@ -1757,6 +2616,34 @@
       reset: resetSave
     };
     actions[action]?.();
+  }
+
+  function runActionNow(action, button) {
+    prepareForPlayerAction();
+    if (button) pulseElement(button, "is-activated", 380);
+    handleAction(action);
+    if (!isActionPlaying) {
+      syncThoughtBubble();
+      scheduleIdleBehavior();
+      scheduleSweetieStroll();
+    }
+  }
+
+  function shouldReturnHomeBeforeCareAction(action) {
+    return isSweetieCareAction(action)
+      && !isSweetieAtHome();
+  }
+
+  function queueSweetieCareAction(action, button) {
+    if (pendingSweetieAction || isSweetieReturningHome) {
+      showReturningHomeMessage();
+      return true;
+    }
+
+    pendingSweetieAction = { action, button };
+    showReturningHomeMessage();
+    startSweetieReturnHome();
+    return true;
   }
 
   function updateStandButton() {
@@ -1774,15 +2661,24 @@
 
   document.querySelectorAll("[data-action]").forEach((button) => {
     button.addEventListener("click", () => {
+      const action = button.dataset.action;
+      if (isSectionTransitioning) return;
       audioManager.unlock();
-      prepareForPlayerAction();
-      pulseElement(button, "is-activated", 380);
-      handleAction(button.dataset.action);
-      if (!isActionPlaying) {
-        syncThoughtBubble();
-        scheduleIdleBehavior();
-        scheduleSweetieStroll();
+
+      if (isSweetieReturningHome) {
+        if (isSweetieCareAction(action) && !pendingSweetieAction) {
+          pendingSweetieAction = { action, button };
+        }
+        showReturningHomeMessage();
+        return;
       }
+
+      if (shouldReturnHomeBeforeCareAction(action)) {
+        queueSweetieCareAction(action, button);
+        return;
+      }
+
+      runActionNow(action, button);
     });
   });
 
@@ -1794,6 +2690,7 @@
     window.setTimeout(() => {
       dom.welcomeScreen.hidden = true;
       lastInteractionAt = Date.now();
+      renderBeachSection();
       syncSweetieSprite();
       syncThoughtBubble();
       scheduleIdleBehavior(5_000);
@@ -1820,17 +2717,49 @@
   dom.dialog.addEventListener("click", (event) => {
     if (event.target === dom.dialog) closeDialog();
   });
+  dom.beachNavLeft.addEventListener("click", () => goToAdjacentBeachSection("left"));
+  dom.beachNavRight.addEventListener("click", () => goToAdjacentBeachSection("right"));
+  document.addEventListener("keydown", (event) => {
+    if (shouldIgnoreBeachNavigationKey(event)) return;
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      goToAdjacentBeachSection("left");
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      goToAdjacentBeachSection("right");
+    }
+  });
+  dom.shellWordsClose.addEventListener("click", closeShellWords);
+  dom.shellWordsStart.addEventListener("click", startShellWordsRound);
+  dom.shellWordsSubmit.addEventListener("click", submitShellWordsWord);
+  dom.shellWordsClear.addEventListener("click", clearShellWordsSelection);
+  dom.shellWordsShuffle.addEventListener("click", shuffleShellWordsLetters);
+  dom.shellWordsLetters.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-shell-letter-index]");
+    if (!button) return;
+    selectShellWordsLetter(Number(button.dataset.shellLetterIndex));
+  });
+  dom.shellWordsDialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeShellWords();
+  });
+  dom.shellWordsDialog.addEventListener("click", (event) => {
+    if (event.target === dom.shellWordsDialog) closeShellWords();
+  });
+  dom.shellWordsDialog.addEventListener("keydown", handleShellWordsKeydown);
 
   dom.sweetieImage.addEventListener("load", markSweetieAssetLoaded);
   dom.sweetieImage.addEventListener("error", handleSweetieAssetError);
   Object.keys(SWEETIE_ASSETS).forEach(preloadSweetieAsset);
   Object.keys(SWEETIE_ANIMATIONS).forEach(preloadSweetieAnimation);
+  initializeUiIconAssets();
   initializeBeachAssets();
   initializeStandTalkingAssets();
   syncSoundToggle();
   if (state.hasStarted) dom.welcomeScreen.hidden = true;
   setSweetieRoamPosition(SWEETIE_STROLL_CONFIG.home, 0);
   updateFixedSceneDepth();
+  renderBeachSection();
   render();
   if (loaded.isReturning) showMessage(pick(messages.return));
   saveState(false);
@@ -1847,11 +2776,13 @@
       stopStandTalkingAnimation();
       window.clearTimeout(idleScheduleTimer);
       clearIdleBehavior();
+      stopSweetieReturnHome({ resetPosition: true, restoreSprite: false, clearPending: true });
       cancelSweetieStroll({ restoreSprite: false });
       stopSweetieBlink(false);
     } else {
       audioManager.startAmbient("oceanWaves");
       lastInteractionAt = Date.now();
+      renderBeachSection();
       syncSweetieSprite();
       syncThoughtBubble();
       scheduleIdleBehavior(5_000);
@@ -1864,6 +2795,7 @@
       stopStandTalkingAnimation();
       window.clearTimeout(idleScheduleTimer);
       clearIdleBehavior();
+      stopSweetieReturnHome({ resetPosition: true, clearPending: true });
       cancelSweetieStroll();
     } else if (state.hasStarted && !document.hidden) {
       lastInteractionAt = Date.now();
@@ -1896,7 +2828,7 @@
 
   window.setInterval(updateStandButton, 1000);
   window.setInterval(() => {
-    if (!dom.dialog.open && dom.welcomeScreen.hidden) showMessage(pick(messages.idle));
+    if (!dom.dialog.open && !isShellWordsOpen() && dom.welcomeScreen.hidden) showMessage(pick(messages.idle));
   }, 32_000);
 
   window.sweetiesGame = {
@@ -1918,11 +2850,27 @@
       }
     },
     getState: () => ({ ...state, mood: getMood() }),
+    getShellWordsState: () => ({
+      state: shellWords.state,
+      puzzleId: shellWords.puzzle?.id || null,
+      secondsRemaining: shellWords.secondsRemaining,
+      foundWords: Array.from(shellWords.foundWords),
+      bonusWords: Array.from(shellWords.foundBonusWords),
+      result: shellWords.result ? { ...shellWords.result } : null
+    }),
     getSweetiePose: () => currentSweetiePose,
     setSweetiePose,
     getSweetieAssets: () => ({ ...SWEETIE_ASSETS }),
     getSweetieAssetStatus: () => Object.fromEntries(Object.entries(SWEETIE_ASSETS).map(([key, src]) => [key, sweetieSourceStatus.get(src) || "unknown"])),
     getBeachSceneAssets: () => ({ ...BEACH_SCENE_ASSETS }),
+    getUiIconAssets: () => ({
+      stats: { ...UI_ICON_ASSETS.stats },
+      actions: { ...UI_ICON_ASSETS.actions },
+      misc: { ...UI_ICON_ASSETS.misc }
+    }),
+    getBeachSections: () => BEACH_SECTIONS.map((section) => ({ ...section })),
+    getCurrentBeachSection: () => ({ ...getCurrentBeachSection() }),
+    goToBeachSection,
     getBeachPropAssets: () => ({ ...BEACH_PROP_ASSETS }),
     getStandNpcState: () => ({
       bubbleVisible: dom.standSpeechBubble.classList.contains("is-visible"),
@@ -1936,6 +2884,11 @@
       scene: Object.fromEntries(Object.entries(BEACH_SCENE_ASSETS).map(([key, src]) => [key, beachAssetStatus.get(src) || "unknown"])),
       props: Object.fromEntries(Object.entries(BEACH_PROP_ASSETS).map(([key, src]) => [key, beachAssetStatus.get(src) || "unknown"]))
     }),
+    getUiIconAssetStatus: () => Object.fromEntries(
+      Object.entries(UI_ICON_ASSETS).flatMap(([category, icons]) => (
+        Object.entries(icons).map(([key, src]) => [`${category}.${key}`, uiIconAssetStatus.get(src) || "unknown"])
+      ))
+    ),
     getSceneDepthConfig: () => SCENE_DEPTH_CONFIG,
     getSceneDepthSnapshot: () => ({
       sweetie: {
@@ -1951,6 +2904,12 @@
       }))
     }),
     getSweetieAnimations: () => SWEETIE_ANIMATIONS,
+    getSweetieAnimationStatus: () => Object.fromEntries(Object.entries(SWEETIE_ANIMATIONS).map(([name, animation]) => [name, {
+      requiredFrames: animation.frames.map((src) => ({ src, status: sweetieSourceStatus.get(src) || "unknown" })),
+      optionalFrames: (animation.optionalFrames || []).map((src) => ({ src, status: sweetieSourceStatus.get(src) || "unknown" })),
+      activeFrames: sweetieAnimationFrameSets.get(name) || [],
+      ready: sweetieAnimationFrameSets.has(name)
+    }])),
     getThoughtBubbleConfig: () => THOUGHT_BUBBLE_CONFIG,
     getThoughtBubbleState: () => ({
       visible: isThoughtBubbleVisible,
@@ -1961,6 +2920,9 @@
     getSweetieStrollState: () => ({
       state: sweetieStrollState,
       isStrolling: isSweetieStrolling,
+      isReturningHome: isSweetieReturningHome,
+      pendingAction: pendingSweetieAction?.action || null,
+      activeSweetieAnimation: currentSweetieAnimationName,
       position: { ...currentSweetieRoamPosition }
     }),
     runSweetieStroll: () => {
