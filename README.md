@@ -4,7 +4,7 @@ Sweetie's Beach Day is a cozy, phone-first virtual pet game about caring for Swe
 
 The game uses only HTML, CSS, and vanilla JavaScript. It has no dependencies, build step, account, or server.
 
-> **Current milestone:** Lightweight Audio Manager. See [CHANGELOG.md](CHANGELOG.md) for the completed scope and deferred features.
+> **Current milestone:** UI icon asset system. See [CHANGELOG.md](CHANGELOG.md) for the completed scope and deferred features.
 
 ## How to run
 
@@ -19,12 +19,48 @@ Use the large care buttons to spend time with Sweetie:
 - **Give water** gives Sweetie a small Energy boost.
 - **Play fetch** raises Joy and Bond but uses Energy. When Sweetie is tired, she proudly substitutes a seashell instead.
 - **Nap** restores Energy and lowers Fullness a little.
-- **Visit hot dog stand** prompts a short line from the duck vendor and adds three treats. The duck needs 45 seconds to arrange the next batch.
+- **Visit hot dog stand** lets you buy one hot dog treat for 3 shells. The duck needs 45 seconds to prepare the next order.
+- **Shell Words** opens a 3-minute cozy word mini-game using curated beach-letter puzzles. Find words to earn shells; five target words completes a full round, and bonus words add a little extra.
+- Use the left and right beach arrows, or keyboard arrows when focus is not inside a control, to visit the bare-bones beach sections.
 - **Outfits** and **Tricks** show Phase 1 previews.
 - **Sweetie's Dream Quest** is locked until Bond reaches 75, then reveals a coming-soon preview.
 - **Inspect sparkly seashell** appears at Bond 75 and reveals the hidden dedication placeholder.
 - **Reset save** returns the game to its comfortable starting state.
 
+
+## UI icon asset system
+
+Stats and action buttons can optionally render decorative PNG icons from `assets/ui/icons/` while keeping the existing CSS card and button layout. Missing PNGs keep the current CSS or text icon fallback, log one console warning per path, and never show broken-image placeholders.
+
+The registry lives in `UI_ICON_ASSETS` in `game.js`. Drop stat icons into `assets/ui/icons/stats/`, action icons into `assets/ui/icons/actions/`, and future/misc icons into `assets/ui/icons/misc/`. See `assets/ui/icons/README.md` for exact filenames, mappings, and art-size guidance.
+
+## Beach section navigation
+
+The beach scene now has a lightweight three-section navigation shell:
+
+- `cupidsCove` displays as **Cupid's Cove**.
+- `mainBeach` displays as **Sweetie's Spot** and remains the default, fully populated care scene.
+- `lazyLighthouse` displays as **The Lazy Lighthouse**.
+
+The left and right scene arrows move between adjacent sections with a short locked transition so repeated taps cannot stack room changes. Keyboard `ArrowLeft` and `ArrowRight` navigation works only when the game is started, no modal is open, no transition is running, and focus is not inside a button or text control.
+
+Cupid's Cove and The Lazy Lighthouse are intentionally sparse for this MVP. They keep the shared sky, ocean, sand, and Sweetie layers, while the existing umbrella, towel, shells, hot dog stand, and seagull remain tied to Sweetie's Spot. The `BEACH_SECTIONS` registry in `game.js` includes future-facing `actions`, `props`, `npcs`, and `discoveries` arrays for later content without changing current care mechanics.
+
+## Shell Words mini-game
+
+Shell Words is a lightweight MVP word game opened from the Play section. Each round lasts three minutes, shows a curated six-or-seven-letter shell pile, and completes when the player finds five accepted target words. Letter buttons can only be used as many times as their letters appear in the pile. Submit, Clear, Shuffle, Enter, Backspace, and letter-key input are supported.
+
+Shell Words now pays the soft beach currency **Shells** at round end. Finding no accepted target words awards 0 shells, finding 1-4 target words awards 2 shells, completing the five-word target awards 8 shells, and each bonus word adds 1 shell once at least one accepted target word has been found. Closing a round early counts as ending the round and grants the appropriate none/partial reward once. Each round result has a `rewardPaid` flag so reopening or rerendering the result cannot duplicate the payout.
+
+Starter puzzles live in `content/shell-words-puzzles.js` as `window.SHELL_WORD_PUZZLES`. Each puzzle should have a unique `id`, a display `title`, six or seven `letters`, `minimumLength`, `wordsToWin`, at least ten normal `acceptedWords`, and optional `bonusWords`. See `content/README.md` for editing guidance.
+
+## Shell economy and hot dog stand
+
+`ECONOMY_CONFIG` in `game.js` stores the first economy values: Shell Words rewards (`none: 0`, `partial: 2`, `full: 8`, `bonusWord: 1`) and the first shop item, `hotDogTreat`, priced at 3 shells. The persistent save stores `state.shells` next to the existing stats and treat count; old saves without shells migrate to 0 safely.
+
+The shell balance appears as a modest card beside the picnic basket. Visiting the duck-run hot dog stand now attempts to buy one hot dog treat for 3 shells. A successful purchase subtracts shells, adds one treat to the picnic basket, plays the existing stand reaction/talking feedback, and starts the familiar short stand cooldown. It does not feed Sweetie immediately; the existing **Give hot dog treat** care action still handles eating and stat changes. If the player has too few shells, no shells or treats change and the duck gives a gentle prompt to play more Shell Words.
+
+This is intentionally not a full shop yet: accessories, prop purchases, multiple snack items, section shops, premium currency, achievements, and inventory expansion are left for later.
 ## Stats and moods
 
 - **Joy** reflects Sweetie's cheerful mood.
@@ -42,20 +78,23 @@ Closing the game is completely safe. No offline decay is applied, so time away n
 
 ## Saving
 
-Progress saves automatically in the browser with `localStorage`. The save includes all four stats, the hot dog treat count, the stand cooldown, whether the hidden note was discovered, and whether the welcome screen has been completed. The sound preference is stored separately under its own local key, so resetting game progress does not force a sensory preference change. Reloading `index.html` restores the save on the same browser and device and shows a gentle return message.
+Progress saves automatically in the browser with `localStorage`. The save includes all four stats, the hot dog treat count, the Shells balance, the stand cooldown, whether the hidden note was discovered, and whether the welcome screen has been completed. The sound preference is stored separately under its own local key, so resetting game progress does not force a sensory preference change. Reloading `index.html` restores the save on the same browser and device and shows a gentle return message.
 
 The **Reset save** button asks for confirmation, clears the saved state, and begins a fresh beach day.
 
 ## Current Phase 1 features
 
 - Responsive, phone-first interface with large touch controls
-- Sunny CSS beach scene with ocean, umbrella, towel, seashells, and hot dog stand
+- Optional PNG icon pipeline for stat badges and action-button icons
+- Three-section beach navigation shell with Sweetie's Spot as the populated main beach
+- Sunny beach scene with ocean, umbrella, towel, seashells, and hot dog stand on the main section
 - Asset-rendered blond long-haired dachshund character with mood reactions
 - Occasional no-penalty ambient strolls between the home area and waterline
 - Joy, Fullness, Energy, and always-growing Bond stats
 - Happy, Snackish, Sleepy, Playful, and Calm moods
 - Six working care and outing actions
-- Hot dog treat inventory, a gentle stand cooldown, and lightweight duck-vendor dialogue
+- Shell currency, hot dog treat inventory, a gentle stand cooldown, and lightweight duck-vendor dialogue
+- Curated Shell Words MVP mini-game with a 3-minute timer, five-word completion target, and Shell rewards
 - More than 25 randomized affectionate reactions
 - Slow on-page stat decay with no offline penalty
 - Local saving, save migration, and reset
@@ -117,29 +156,35 @@ Sweetie renders from image assets in `assets/sweetie/` inside the dedicated, bot
 
 Existing moods request happy, snackish, sleepy, playful, or idle artwork. Pet, treat, drink, fetch, and nap reactions temporarily take priority, then return to the best available mood sprite. Assets are checked off-screen before display, missing files log one console warning, and fallback continues through mood, idle, and finally a neutral placeholder without showing a broken image or reviving legacy dog layers. See `assets/sweetie/README.md` for filenames and artwork requirements.
 
+Happy mood can optionally loop `assets/sweetie/sweetie_happy_01.png` and `sweetie_happy_02.png` as a gentle 450ms tail wag when both frames load and no higher-priority animation is active. `sweetie_happy.png` remains the single-pose fallback, and reduced-motion mode keeps the happy pose static.
+
 Optional three-frame action sequences now play through the same stable container only after every registered frame loads and decodes. The current frame remains visible during swaps, frame images do not fade to transparent, and mismatched canvas sizes produce a one-time console diagnostic. A two-frame idle sequence provides naturally randomized blinks; actions interrupt it immediately and restore the correct mood or idle artwork afterward.
 
 ## Ambient Sweetie strolling
 
 After a calm 12-to-24-second idle period, Sweetie may wander from her home/care position toward a smaller waterline lane, cross most of the beach, briefly pass beyond both scene edges, re-enter, and return home. The movement is visual only: it never changes stats, saves, messages, or care outcomes.
 
-The outer `.sweetie-roam-layer` owns responsive scene movement and distance scaling while the inner `.sweetie-character` keeps existing blink and care animations. Any player action cancels the stroll, restores Sweetie to full-size home position immediately, and then plays the requested reaction. Ambient strolling is disabled when reduced motion is preferred.
+The stroll scheduler keeps one pending timer. If the timer fires while Sweetie is busy, a section transition is active, a dialog or Shell Words is open, the page is hidden, or a temporary idle micro-behavior is playing, the attempt retries after a short delay instead of stopping permanently. Passive mood loops, such as the happy tail-wag, count as idle-safe and can be interrupted by the walk cycle.
 
-Optional walking art uses `assets/sweetie/sweetie_walk_01.png` through `sweetie_walk_04.png`. The walk cycle runs only when all four frames load; otherwise the current mood or idle sprite travels with a very subtle CSS bob. See `assets/sweetie/README.md` for shared-canvas and feet-anchor requirements.
+The outer `.sweetie-roam-layer` owns responsive scene movement and distance scaling while the inner `.sweetie-character` keeps existing blink and care animations. When a stroll ends, Sweetie returns smoothly to the full-size home position before idle resumes. If `sweetie_run_01.png` through `sweetie_run_03.png` load, those frames loop during the return; `sweetie_run_04.png` is optional and joins the loop when present. If the minimum run frames are incomplete, the current valid mood or idle sprite returns home safely. Ambient strolling is intentionally canceled and not scheduled when reduced motion is preferred, keeping Sweetie safely at home with static sprites.
+
+Direct care actions clicked while Sweetie is strolling or offscreen are stored as a single pending action. The care buttons enter a temporary locked state, Sweetie runs home first, and then the queued action plays from the normal home/care position. Extra care clicks during the return keep the first queued action and show a gentle scampering-back message.
+
+Optional walking art uses `assets/sweetie/sweetie_walk_01.png` through `sweetie_walk_04.png`. The walk cycle runs only when all four frames load; otherwise the current mood or idle sprite travels with a very subtle CSS bob. See `assets/sweetie/README.md` for shared-canvas, feet-anchor, and return-run requirements.
 
 ## Hot dog stand NPC interaction
 
-The enlarged hot dog stand is a lightweight NPC interaction point. Visiting it shows one short, randomized line from the cheerful duck vendor in a dedicated bubble anchored above the stand, then preserves the existing free three-treat restock and 45-second cooldown. Repeated visits replace the current line and restart its short timer instead of stacking bubbles. The stand bubble is separate from Sweetie's occasional thought bubble. The stand now sits farther up the sand near the waterline while remaining in the ground-anchored depth system.
+The enlarged hot dog stand is a lightweight NPC interaction point and the first Shells shop hook. Visiting it shows one short, randomized line from the cheerful duck vendor in a dedicated bubble anchored above the stand. If the stand is ready and the player has 3 shells, the duck sells one hot dog treat, adds it to the picnic basket, and starts the familiar 45-second cooldown. If the player needs more shells, the duck gives a gentle prompt without changing shells or treats. Repeated visits replace the current line and restart its short timer instead of stacking bubbles. The stand bubble is separate from Sweetie's occasional thought bubble. The stand now sits farther up the sand near the waterline while remaining in the ground-anchored depth system.
 
-`assets/props/hot_dog_stand.png` is the idle frame and may include the duck vendor baked into the artwork. Optional `assets/props/hot_dog_stand_talk.png` and `assets/props/hot_dog_stand_talk_02.png` provide full-stand talking expressions. With both present, visits play idle, talk, talk 02, talk, idle at 250ms intervals; with only the first, idle and talk alternate; with neither, the idle stand and dialogue bubble continue normally. The optional, preload-gated `assets/props/stand_owner.png` path is registered for a future separate white duck layer; it is not required and its absence cannot create a broken image. Optional `assets/treats/hot_dog.png` and `assets/treats/treat_crumbs.png` artwork continues through the existing prop fallback pipeline. This handler is an intentional future extension point for shell, cash, or points purchases, but no economy, currency, prices, shop, inventory, outfits, or accessories are implemented.
+`assets/props/hot_dog_stand.png` is the idle frame and may include the duck vendor baked into the artwork. Optional `assets/props/hot_dog_stand_talk.png` and `assets/props/hot_dog_stand_talk_02.png` provide full-stand talking expressions. With both present, visits play idle, talk, talk 02, talk, idle at 250ms intervals; with only the first, idle and talk alternate; with neither, the idle stand and dialogue bubble continue normally. The optional, preload-gated `assets/props/stand_owner.png` path is registered for a future separate white duck layer; it is not required and its absence cannot create a broken image. Optional `assets/treats/hot_dog.png` and `assets/treats/treat_crumbs.png` artwork continues through the existing prop fallback pipeline. This handler is now the first small economy extension point: only the 3-shell hot dog treat purchase is implemented. Accessories, prop purchases, multiple snack items, expanded inventory, outfits, and broader shop systems are intentionally not implemented yet.
 
 ## Beach scene and prop asset pipeline
 
 Non-Sweetie artwork now has centralized optional paths in `BEACH_SCENE_ASSETS` and `BEACH_PROP_ASSETS` in `game.js`. Drop correctly named PNGs into `assets/backgrounds/`, `assets/props/`, or `assets/treats/` and reload the page. A path activates only after its file preloads successfully, so missing or partial asset sets keep the existing CSS scene without broken images or layout shifts.
 
-The scene remains layered rather than flattened: sky, animated ocean, sand, fixed props, Sweetie, feedback, then UI. The base ocean gradient, moving CSS waves, and shoreline foam remain active. Optional `ocean_water_texture.png`, `wave_foam_01.png`, and `wave_foam_02.png` add independently drifting overlays; reduced-motion mode freezes those overlays. They are not a full-scene background or frame animation.
+The scene remains layered rather than flattened: sky, animated ocean, sand, fixed props, Sweetie, feedback, then UI. The base ocean gradient remains active, while loaded `ocean_water_texture.png`, `wave_foam_01.png`, and `wave_foam_02.png` now provide the visible water motion. Legacy CSS wave sticks and the old generated foam strip are disabled so the PNG overlays read as one cleaner ocean system; reduced-motion mode freezes those overlays. They are not a full-scene background or frame animation.
 
-The broad `beach_sky.png` layer now supports separate optional `sun.png` and `cloud_01.png` through `cloud_03.png` decorations. Successfully loaded artwork rotates or drifts gently behind the ocean; missing files retain the existing CSS sun and clouds. Reduced-motion mode leaves the decorations visible and static.
+The broad `beach_sky.png` layer supports separate optional `sun.png` and `cloud_01.png` through `cloud_03.png` decorations. Successfully loaded artwork sits above the CSS sky but behind the ocean: the sun displays larger in the upper-right and rotates once every 110 seconds, while the clouds drift lazily on independent 72, 96, and 124 second cycles. Missing files retain the existing CSS sun and clouds, and reduced-motion mode leaves the decorations visible and static.
 
 See `assets/README.md` and each asset folder's README for exact filenames, transparent-canvas guidance, fallbacks, and layer rules.
 
@@ -162,7 +207,7 @@ Both MP3s are optional. Missing files and rejected playback promises are handled
 - Outfits
 - Dog tricks
 - Beach collectibles
-- Word games
+- More word-game puzzle packs
 - Duck easter eggs
 - Weightlifting-themed accessories or mini-events
 - Musical-theater-inspired witty achievement names, without using copyrighted lyrics

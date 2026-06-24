@@ -1,9 +1,121 @@
 # Changelog
 
+## Shell Economy Hot Dog Loop MVP
+
+**Date:** June 23, 2026  
+**Status:** Current completed milestone
+
+- Added persistent `state.shells` currency with old-save migration, a modest Shells card beside the picnic basket, and UI-icon fallback support
+- Added `ECONOMY_CONFIG` for Shell Words reward values and the first shop item, `hotDogTreat`, priced at 3 shells
+- Connected Shell Words round endings to one-time Shell payouts: 0 for none, 2 for partial, 8 for full completion, and +1 per bonus word after at least one accepted target word
+- Converted the hot dog stand into a lightweight purchase flow: enough shells buys one basket treat, too few shells shows gentle duck feedback, and the existing stand talking/quack/cooldown behavior remains intact
+- Updated editable copy and documentation for Shells, Shell Words rewards, purchase feedback, insufficient-shell text, and future economy boundaries
+
+## Idle Stroll Scheduler Repair
+
+**Date:** June 23, 2026  
+**Status:** Superseded by Shell Economy Hot Dog Loop MVP
+
+- Repaired ambient stroll eligibility so passive mood loops, including the happy tail-wag animation, no longer permanently block idle walks
+- Kept care actions, return-home run, active strolls, section transitions, dialogs, Shell Words, page hiding, and temporary idle micro-behaviors as blockers
+- Preserved the single stroll timer path: blocked attempts retry after the configured short delay instead of ending the ambient system
+- Documented section-transition cancellation, modal/minigame blocking, reduced-motion cancellation, and walk/run asset fallback behavior
+
+## UI Icon Asset System
+
+**Date:** June 23, 2026  
+**Status:** Superseded by Idle Stroll Scheduler Repair
+
+- Added a `UI_ICON_ASSETS` registry for stat, action, and misc/future icon PNG paths under `assets/ui/icons/`
+- Added decorative icon image slots to the four stat badges, picnic basket/treat icon, six primary action buttons, Shell Words, Outfits, and Tricks without replacing labels or button/card layouts
+- Added decoded-image loading for UI icons with one warning per missing path and CSS/text fallback preservation without broken image placeholders
+- Added CSS sizing and alignment rules so transparent PNG icons sit centered inside the existing rounded icon badges on desktop and mobile
+- Added `assets/ui/icons/README.md` plus asset-manifest notes for expected filenames and artwork guidance
+
+## Beach Section Navigation MVP
+
+**Date:** June 23, 2026  
+**Status:** Superseded by UI Icon Asset System
+
+- Added a three-section beach scene registry with `cupidsCove`, `mainBeach`, and `lazyLighthouse`, using Sweetie's Spot as the default populated section
+- Added left/right edge arrows, editable section labels, and safe keyboard arrow navigation when no modal or focused control is active
+- Added a short locked room transition that cancels ambient stroll/idle motion, returns Sweetie to the home anchor, and prevents stacked navigation taps
+- Kept Cupid's Cove and The Lazy Lighthouse intentionally sparse with only the base sky, ocean, sand, and Sweetie layers visible
+- Added future-facing `actions`, `props`, `npcs`, and `discoveries` arrays to the section config without changing current care mechanics, stats, saves, Shell Words, audio, ocean, or Sweetie assets
+
+## Return-Home Run Three-Frame Support
+
+**Date:** June 23, 2026  
+**Status:** Superseded by Beach Section Navigation MVP
+
+- Changed the return-home run animation so `sweetie_run_01.png` through `sweetie_run_03.png` are the required minimum loop
+- Made `sweetie_run_04.png` optional, joining the loop only when it loads and decodes successfully
+- Added optional-frame support to the Sweetie animation preloader without changing care actions, stroll movement, stats, saves, Shell Words, audio, ocean, or props
+- Kept return-home run priority above walk, mood animation, idle blink, and happy tail wag while Sweetie is returning from a stroll
+- Preserved reduced-motion behavior by skipping rapid run-frame playback during return
+
+## Ocean Overlay Cleanup
+
+**Date:** June 23, 2026  
+**Status:** Superseded by Return-Home Run Three-Frame Support
+
+- Removed the old HTML wave spans from the ocean layer
+- Disabled legacy CSS ocean shimmer, wave sticks, and generated foam strip so loaded PNG overlays are the primary visible ocean motion
+- Retuned `ocean_water_texture.png` to span the full water area as a subtle drifting texture
+- Retuned `wave_foam_01.png` as the stronger lower/front foam band and `wave_foam_02.png` as the subtler higher/distant foam band
+- Raised the sand boundary from 62% to 58% and shortened the ocean region from 34% to 28% scene height for a calmer beach/water balance
+- Preserved the sky, sun, clouds, Sweetie, props, care mechanics, saves, Shell Words, audio, and reduced-motion freeze behavior
+
+## Shell Words MVP Mini-Game
+
+**Date:** June 23, 2026  
+**Status:** Superseded by Ocean Overlay Cleanup
+
+- Added a playable Shell Words button to the Play section without changing Sweetie's care actions, stats, saves, audio, props, sky, ocean, or hot dog stand behavior
+- Added a dedicated Shell Words modal with instructions, 3-minute timer, shell-letter buttons, current word display, Submit, Clear, Shuffle, found-word list, progress, close handling, and keyboard support
+- Added a small `notStarted`, `playing`, `completed`, `timedOut`, and `exited` state flow with a five-target-word completion goal
+- Added curated puzzle data in `content/shell-words-puzzles.js` with five starter six-or-seven-letter puzzles and at least ten accepted normal words per puzzle
+- Added gentle validation for minimum length, repeated-letter limits, accepted or bonus word lists, and duplicate finds
+- Added a future reward result scaffold with `rewardPendingImplementation: true` but no currency, inventory, economy, stat changes, or reward payout
+
+## Happy Mood Tail-Wag Animation Support
+
+**Date:** June 23, 2026  
+**Status:** Superseded by Shell Words MVP Mini-Game
+
+- Registered optional `sweetie_happy_01.png` and `sweetie_happy_02.png` as a complete happy mood animation group
+- Added a 450ms-per-frame happy tail-wag loop that only runs while Sweetie is in happy mood with no higher-priority animation active
+- Kept `sweetie_happy.png` as the single-pose fallback when either numbered frame is missing or reduced motion is preferred
+- Kept action animations, return-home run, ambient stroll/walk, temporary idle behaviors, and idle blink from conflicting with the happy loop
+- Preserved gameplay stats, saving, audio, sky, ocean, props, hot dog stand behavior, and existing care action animations
+
+## Return-Home Run Animation Support
+
+**Date:** June 22, 2026  
+**Status:** Superseded by Happy Mood Tail-Wag Animation Support
+
+- Registered optional `sweetie_run_01.png` through `sweetie_run_04.png` front-facing return-home frames at 150ms per frame
+- Added a `returningHome` state that smoothly moves Sweetie from the waterline or offscreen stroll lane back to the home/care anchor
+- Loops the return-home run only when the complete decoded frame group is available, otherwise falls back to the current mood or idle sprite without broken images
+- Queues one direct Sweetie care action during a stroll, temporarily marks care buttons unavailable, and plays the action only after Sweetie reaches home
+- Preserved stat effects, save data, audio, sky, ocean, props, hot dog stand behavior, and existing Sweetie action animations
+
+## Animated Sky Behavior Polish
+
+**Date:** June 22, 2026  
+**Status:** Superseded by Return-Home Run Animation Support
+
+- Increased the loaded `sun.png` display size with responsive CSS while keeping it in the upper-right sky layer
+- Slowed the sun rotation to a subtle 110-second cycle
+- Expanded cloud PNG motion into gentle transform-based drifts with independent 72, 96, and 124 second cycles
+- Kept missing sky assets on their existing CSS fallbacks without broken image icons
+- Preserved reduced-motion behavior so loaded sky decorations remain visible but static
+- Preserved the animated ocean, Sweetie behavior, hot dog stand NPC behavior, stats, saves, and UI structure
+
 ## PNG Animation Playback Stability
 
 **Date:** June 22, 2026  
-**Status:** Current completed milestone
+**Status:** Superseded by Animated Sky Behavior Polish
 
 - Upgraded shared PNG preloading to wait for browser decode before a frame can be used
 - Kept the previous Sweetie or stand frame visible while the next decoded frame is selected

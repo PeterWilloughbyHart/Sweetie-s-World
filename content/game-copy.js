@@ -49,6 +49,17 @@ window.SWEETIE_COPY = {
     itemLabel: "hot dog treats"
   },
 
+  economy: {
+    shells: {
+      label: "Shells",
+      itemLabel: "collected shells",
+      ariaLabel: "{shells} collected shells"
+    },
+    shop: {
+      hotDogTreat: { label: "Hot dog treat" }
+    }
+  },
+
   moods: {
     happy: { label: "Happy", icon: "☀", thought: "Best. Day. Ever.", propText: "" },
     snackish: { label: "Snackish", icon: "♡", thought: "A snack, perhaps?", propText: "" },
@@ -63,7 +74,8 @@ window.SWEETIE_COPY = {
     water: { label: "Give water", subtitle: "Hydration station" },
     nap: { label: "Nap", subtitle: "A premium towel snooze", iconText: "Zz" },
     fetch: { label: "Play fetch", subtitle: "Maximum short-leg speed" },
-    stand: { label: "Visit hot dog stand", subtitle: "Treat restock available" },
+    stand: { label: "Visit hot dog stand", subtitle: "Hot dog treat - 3 shells" },
+    shellWords: { label: "Shell Words", subtitle: "Make little beach words" },
     outfits: { label: "Outfits", subtitle: "Coming soon: beachwear" },
     tricks: { label: "Tricks", subtitle: "Coming soon: trick school" },
     quest: {
@@ -80,6 +92,41 @@ window.SWEETIE_COPY = {
     reset: { label: "Reset save", subtitle: "Start a fresh beach day" }
   },
 
+
+  shellWords: {
+    eyebrow: "Beach bag mini-game",
+    title: "Shell Words",
+    instructions: "Tap shell letters to make cozy beach words. Find five before the timer runs out.",
+    timerLabel: "Timer",
+    progressLabel: "Progress",
+    foundHeading: "Found words",
+    startButton: "Start round",
+    newRoundButton: "New round",
+    submitButton: "Submit",
+    clearButton: "Clear",
+    shuffleButton: "Shuffle",
+    emptyWord: "Tap shells to spell a word.",
+    readyStatus: "Ready when you are.",
+    unavailableStatus: "No shell piles are ready yet.",
+    startStatus: "The shells are listening.",
+    tooShortStatus: "Tiny word, tiny pause - try at least {minimum} letters.",
+    notFromLettersStatus: "Those letters are not all in this shell pile.",
+    notAcceptedStatus: "Sweetie tilts her head. Try another beachy little word.",
+    duplicateStatus: "Already found. Sweetie is politely impressed twice.",
+    acceptedStatus: "Found: {word}",
+    bonusStatus: "Bonus shell word: {word}",
+    completedStatus: "Five words found. Sweetie declares this a tiny triumph.",
+    timedOutStatus: "Time is up, but the beach remains very proud of you.",
+    exitedStatus: "Shell Words tucked back into the beach bag.",
+    puzzleTitle: "Shell pile: {title}",
+    progressText: "{found} / {target}",
+    summaryCompleted: "Round complete: {found} target words and {bonus} bonus words found.",
+    summaryTimedOut: "Round ended: {found} of {target} target words found, plus {bonus} bonus words.",
+    summaryExited: "Round tucked away: {found} of {target} target words found, plus {bonus} bonus words.",
+    rewardEarned: "You earned {shells} shells.",
+    rewardEarnedWithBonus: "You earned {shells} shells, including {bonusShells} bonus shells.",
+    rewardNone: "No shells this round, but Sweetie enjoyed the hunt."
+  },
   messages: {
     initial: "Sweetie thinks today is a very good beach day.",
     pet: [
@@ -122,9 +169,9 @@ window.SWEETIE_COPY = {
       "Sweetie dreamed of a hot dog longer than she is."
     ],
     stand: [
-      "The hot dog stand packed three treats for Sweetie. VIP service!",
-      "Treat restock complete. Sweetie supervised the whole transaction.",
-      "Sweetie is considering a career in seaside hospitality."
+      "The duck wrapped one hot dog treat with excellent ceremony.",
+      "One beach snack joined the picnic basket. Sweetie approves of planning ahead.",
+      "The stand completed a very respectable treat transaction."
     ],
     idle: [
       "Sweetie watched a seagull with deep suspicion.",
@@ -138,6 +185,9 @@ window.SWEETIE_COPY = {
       "Sweetie is happy you're back.",
       "Sweetie saved you a spot under the umbrella.",
       "Sweetie has been keeping an eye on the ducks."
+    ],
+    returningHome: [
+      "Sweetie is scampering back!"
     ]
   },
 
@@ -157,16 +207,21 @@ window.SWEETIE_COPY = {
     fetch: { label: "Fetch!" },
     gentleFetch: { label: "Shell!", effect: "Excellent shell" },
     nap: { label: "Nap time", effect: "Zzz", propText: "Zzz" },
-    stand: { label: "Treat delivery!", treats: "+3 treats" },
-    standWait: { label: "Mustard break", effect: "Soon!" }
+    stand: { label: "Treat delivery!", treats: "+1 treat", shellCost: "-{price} shells" },
+    standWait: { label: "Mustard break", effect: "Soon!" },
+    standInsufficient: { label: "More shells", effect: "Shell hunt!" }
   },
 
   hotDogStand: {
     sign: "HOT DOGS",
     ariaLabel: "A hot dog stand run by a cheerful duck vendor",
     ready: "Treat restock available",
+    purchaseReady: "Hot dog treat - {price} shells",
+    needShells: "Hot dog treat - {price} shells ({shells}/{price})",
     cooldown: "The duck needs {seconds}s",
     waitMessage: "The hot dog stand duck is still arranging the mustard.",
+    purchaseMessage: "The duck wrapped one hot dog treat for {price} shells.",
+    insufficientMessage: "A few more shells and the duck will happily wrap one up.",
     dialogue: {
       general: [
         "Fresh hot dogs for discerning beach pups!",
@@ -188,6 +243,17 @@ window.SWEETIE_COPY = {
         "Fresh batch coming right up.",
         "I cannot rush craftsmanship.",
         "The buns are aligning as we speak."
+      ],
+      purchase: [
+        "One beach dog delicacy, respectfully prepared.",
+        "For Sweetie? Naturally.",
+        "A fine snack decision.",
+        "The grill approves."
+      ],
+      insufficientShells: [
+        "A few more shells, perhaps.",
+        "Quality snacks require quality shells.",
+        "The bun is ready, but the shells are not."
       ],
       world: [
         "Business has been brisk with the shore birds today.",
@@ -228,6 +294,23 @@ window.SWEETIE_COPY = {
   scene: {
     ariaLabel: "Sweetie relaxing on a sunny beach",
     captionSuffix: "beach pup"
+  },
+
+  beachSections: {
+    label: "Beach section",
+    goTo: "Go to {section}",
+    cupidsCove: {
+      title: "Cupid's Cove",
+      description: "A quiet sandy nook for future heart-shaped surprises."
+    },
+    mainBeach: {
+      title: "Sweetie's Spot",
+      description: "Sweetie's favorite beach towel, picnic basket, and hot dog stand are here."
+    },
+    lazyLighthouse: {
+      title: "The Lazy Lighthouse",
+      description: "A breezy future stop for lighthouse errands and seaside discoveries."
+    }
   },
 
   welcome: {

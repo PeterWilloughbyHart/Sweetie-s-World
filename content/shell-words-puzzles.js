@@ -1,0 +1,131 @@
+(function () {
+  window.SHELL_WORD_PUZZLES = [
+    {
+      id: "shoreline-shells-001",
+      title: "Shoreline Shells",
+      letters: ["S", "H", "O", "R", "E", "L", "L"],
+      minimumLength: 3,
+      wordsToWin: 5,
+      acceptedWords: [
+        "shell",
+        "shore",
+        "shoe",
+        "sore",
+        "rose",
+        "role",
+        "hole",
+        "hero",
+        "hers",
+        "hose",
+        "sell",
+        "hell",
+        "sole",
+        "lore",
+        "lose"
+      ],
+      bonusWords: ["hello", "hellos"]
+    },
+    {
+      id: "picnic-treats-001",
+      title: "Picnic Treats",
+      letters: ["T", "R", "E", "A", "T", "S"],
+      minimumLength: 3,
+      wordsToWin: 5,
+      acceptedWords: [
+        "treat",
+        "treats",
+        "taste",
+        "tears",
+        "stare",
+        "rates",
+        "tares",
+        "eats",
+        "east",
+        "seat",
+        "teas",
+        "tear",
+        "rate",
+        "tare",
+        "star",
+        "rest",
+        "arts",
+        "rats"
+      ],
+      bonusWords: ["taster"]
+    },
+    {
+      id: "beach-day-001",
+      title: "Beach Day",
+      letters: ["B", "E", "A", "C", "H", "S"],
+      minimumLength: 3,
+      wordsToWin: 5,
+      acceptedWords: [
+        "beach",
+        "chase",
+        "aches",
+        "ache",
+        "each",
+        "cash",
+        "case",
+        "base",
+        "bash",
+        "sea",
+        "she",
+        "has",
+        "ash",
+        "cab"
+      ],
+      bonusWords: []
+    },
+    {
+      id: "sweetie-letters-001",
+      title: "Sweetie Letters",
+      letters: ["S", "W", "E", "E", "T", "I", "E"],
+      minimumLength: 3,
+      wordsToWin: 5,
+      acceptedWords: [
+        "sweet",
+        "wets",
+        "wet",
+        "set",
+        "sit",
+        "tie",
+        "ties",
+        "tee",
+        "tees",
+        "see",
+        "sew",
+        "wit",
+        "wits",
+        "wise",
+        "wee"
+      ],
+      bonusWords: ["sweetie"]
+    },
+    {
+      id: "duck-snack-001",
+      title: "Duck Snack",
+      letters: ["D", "U", "C", "K", "S", "A", "N"],
+      minimumLength: 3,
+      wordsToWin: 5,
+      acceptedWords: [
+        "duck",
+        "ducks",
+        "dunk",
+        "dunks",
+        "dusk",
+        "sunk",
+        "sack",
+        "scan",
+        "snack",
+        "sand",
+        "cask",
+        "cans",
+        "and",
+        "ask",
+        "sun"
+      ],
+      bonusWords: ["snuck"]
+    }
+  ];
+})();
